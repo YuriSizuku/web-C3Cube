@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<head>
+    <script type="importmap">
+        {
+            "imports": 
+            {
+                "three": "https://unpkg.com/three@0.152.0/build/three.module.js",
+                "c3cube": "./c3cube_core.js",
+                "c3cubeg": "./c3cube_graphic.js"
+            }
+        }
+    </script>
+    
+    <script src="https://unpkg.com/mathjs@11.8.0/lib/browser/math.js"></script>
+    <script type="module">
+        import {C3Cube} from 'c3cube';
+        import * as c3cubeg from 'c3cubeg';
+        window.C3Cube = C3Cube;
+        window.c3cubeg = c3cubeg;
+    </script>
+
+    <title>C3Cube</title>
+</head>
+
+<body style="margin: 0 auto;">
+    <div style="display: flex; flex-direction: column;">
+        <canvas id="canvas" width="1280px" height="960px" style=" margin: 0 auto; background:pink"></canvas>
+    </div>
+
+    <script type="text/javascript">
+        function scale_full2(docobj, ratio=0) {
+            var w = window.innerWidth;
+            var h = window.innerHeight - docobj.getBoundingClientRect().top;
+            if(ratio>0) {
+                if(w/h > ratio) {
+                    docobj.style.width  = h * ratio  + "px";
+                    docobj.style.height = h + "px";
+                }
+                else {
+                    docobj.style.width  = w  + "px";
+                    docobj.style.height = w / ratio + "px";
+                }
+            }
+            else {
+                docobj.style.width  = w + "px";
+                docobj.style.height = h + "px";
+            }
+            return {w: docobj.style.width, h: docobj.style.height}
+        }
+    </script>
+
+    <script type="text/javascript">
+        const LONG_CLICK_TIME = 1200; 
+        var g_lastpressdown; // for longpress 
+        function toggle_webinfo() {
+
+        }
+
+        function toggle_webmenu() {
+
+        }
+
+        window.onresize = (event) => {
+            var canvas = document.getElementById('canvas');
+            scale_full2(canvas, 4/3);
+        };
+
+        window.onload = (event) => {
+            var canvas = document.getElementById('canvas');
+            scale_full2(canvas, 4/3);
+        };
+
+        window.onkeydown = (event) => {
+            switch(event.key) {
+                case "F2":
+                    toggle_webinfo();
+                    break;
+                case "F9":
+                    toggle_webmenu();
+                    break;
+            }
+        };
+
+        window.onmousedown = (event) => {
+            if(event.button==0){
+                g_lastpressdown = event.timeStamp;
+            }
+        };
+
+        window.onmouseup = (event) => {
+            if(event.button==0){
+                if(event.timeStamp - g_lastpressdown > LONG_CLICK_TIME) {
+                    var webrmenu = document.getElementById("webrmenu");
+                    if(webrmenu && webrmenu.style.display=="none") toggle_webmenu();
+                    g_lastpressdown = event.timeStamp;
+                }
+            }
+        };
+
+        window.ontouchstart = (event) => {
+            g_lastpressdown = event.timeStamp;
+        };
+
+        window.ontouchend = (event) => {
+            if(event.timeStamp - g_lastpressdown > LONG_CLICK_TIME) {
+                var webrmenu = document.getElementById("webrmenu");
+                if(webrmenu && webrmenu.style.display=="none") toggle_webmenu();
+                g_lastpressdown = event.timeStamp;
+            }
+        };
+
+    </script>
+</body>
