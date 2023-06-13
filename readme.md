@@ -8,7 +8,7 @@
 
 ### (1) Cube Introduce  
 
-We define the unit is **the piece on the cube surface**. There are 3 types of unit: **corner**, **edge**, **inner** unit.  We can see 3 colors on corner unit, 2 colors on edge unit and 1 color on inner unit. In n-order Rubik's Cube (**n-cube**), there are $n^3-(n-2)^3$ unit on cube. Among them are 8 corner unit, $4n(n-2)$ edge unit, $2n(n-2)$ inner unit.  
+We define the unit is **the piece on the cube surface**. There are 3 types of unit: **corner**, **edge**, **inner** unit.  We can see 3 colors on corner unit, 2 colors on edge unit and 1 color on inner unit. In n-order Rubik's Cube (**n-cube**), there are $n^3-(n-2)^3$ unit on cube. Among them are $8$ corner units, $12(n-2)$ edge units, and $6(n-2)^2$ inner units.  
 
 There are 6 faces in cube, as **front, back, left, right, up, Down**, which make the **face collection** $\{f, b, l, r, u, d\}$. We use 6 different colors painted on each face, as **Red, Orange, White, Yellow, Blue, Green, None**, which make the **color collection** $\{R,O,W,Y,B,G,N\}$. $N$ is the dummy part to describe no color.  We assum that the cube observe this color mapping:  
 
@@ -28,10 +28,10 @@ We put the **n-cube** (n>=3) center to $(0, 0, 0)$ and assum that the cube side 
 ```math
 \begin {align}
 &[a, b] = [(n+1) \mod 2, \lfloor n/2 \rfloor]\\
-& unit \in \{(h, k, l)|a \leq |h|, |k|, |l| \leq b, \exists c \in  \{h, k, j\}, |c|=b\} \\
-& corner \leftrightarrow |h|=|k|=|l|= b \\
-& edge \leftrightarrow \exists \{c_1, c_2\} \in \{h, k, l\}, |c_1|=a, |c_2|=b \\
-& inner \leftrightarrow \exists \{c_1, c_2\} \in \{h, k, l\}, |c_1|=|c_2|=a \\
+&\exists \{c_1, c_2, c_3\} \in \{h, k, l\}\\
+& corner \leftrightarrow |c_1|=b, |c_2|=b, |c_3|=b \sim O(C) \\
+& edge \leftrightarrow |c_1| \in [a, b), |c_2|=b, |c_3|=b \sim O(n) \\
+& inner \leftrightarrow |c_1|, |c_2| \in [a, b), |c_3|=b \sim O(n^2)\\
 \end {align}
 ```
 
