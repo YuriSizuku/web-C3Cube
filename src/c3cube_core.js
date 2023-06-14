@@ -14,6 +14,8 @@ const C3Cube = function(n) {
     // init statues
     var a = this.imin;
     var b = this.imax;
+    var cmap = this.colormap;
+    var p, o, c;
     this.status = [];
     for(let i=this.imax;i<=this.imax;i++) {
         this.status[i] = [];
@@ -25,7 +27,6 @@ const C3Cube = function(n) {
         }
     }
 
-    // corner unit
     for(let rx=-1;rx<=1;rx+=2){
         for(let ry=-1;ry<=1;ry+=2) {
             for(let rz=-1;rz<=1;rz+=2) {
@@ -33,20 +34,23 @@ const C3Cube = function(n) {
             }
         }
     }
-    this.status[b][b][b];
-    this.status[-b][b][b];
-    this.status[-b][-b][b];
-    this.status[b][-b][b];
-    this.status[b][b][-b];
-    this.status[-b][b][-b];
-    this.status[-b][-b][-b];
-    this.status[b][-b][-b];
+
+    // corner unit
+    this.status[b][b][b] = new C3CubeUnit((b,b,b), (1,1,1), (cmap[1],cmap[3],cmap[5]));
+    this.status[-b][b][b] = new C3CubeUnit((-b,b,b), (-1,1,1), (cmap[0],cmap[3],cmap[5]));
+    this.status[-b][-b][b] = new C3CubeUnit((-b,-b,b), (-1,-1,1), (cmap[0],cmap[2],cmap[5]));
+    this.status[b][-b][b] = new C3CubeUnit((b,-b,b), (1,1,1), (cmap[1], cmap[3], cmap[5]));
+    this.status[b][b][-b] = new C3CubeUnit((b,b,-b), (1,1,1), (cmap[1], cmap[3], cmap[5]));
+    this.status[-b][b][-b] = new C3CubeUnit((-b,b,-b), (1,1,1), (cmap[1], cmap[3], cmap[5]));
+    this.status[-b][-b][-b]= new C3CubeUnit((-b,-b,-b), (1,1,1), (cmap[1], cmap[3], cmap[5]));
+    this.status[b][-b][-b] = new C3CubeUnit((b,-b,-b), (1,1,1), (cmap[1], cmap[3], cmap[5]));
 
     // edge unit
     for(let i=a;i<b;i++) {
         for(let rx=-1;rx<=1;rx+=2){
             for(let ry=-1;ry<=1;ry+=2) {
                 for(let rz=-1;rz<=1;rz+=2) {
+                    let p = [i*rx]
                     this.status[i*rx][b*ry][b*rz];
                     this.status[b*rx][i*xy][b*rz];
                     this.status[b*rx][b*ry][i*rz];
@@ -75,20 +79,30 @@ C3Cube.prototype.operate = function(axis, i, c=1) {
 
 } 
 
-C3Cube.prototype.colormap = 1;
+/**
+ * colormap, as {f(x, y, z): c}, 
+ * [(3, 5, 9) + (x, y, z)]*|(x, y, z)^T| /2
+ * b|(-1,0,0)|0->O, f|(1,0,0)|1->R, l|(0,-1,0)|2->W, 
+ * r(0,1,0)|3->Y, d|(0,0,-1)|4->G, u|(0,0,1)|5->B, 
+ */
+C3Cube.prototype.colormap = {
+    0:'O', 1:'R', 2:'w', 3:'Y', 4: 'G', 5:'B'
+};
 
 /**
  * @param {Array} p, position vector (1, 1, 1)
  * @param {Array} o, oritation vector, like (1, 1, 1) * (i, j, k)
  * @param {Array} c, color vector, like ('R', 'Y', 'B')
- * */
+ */
 const C3CubeUnit = function(p, o, c) {
     this.p = math.transpose(p);
     this.o = math.transpose([this.ijk[0]*o[0], this.ijk[1]*o[1], this.ijk[2]*c[2]]);
     this.c = c;
 }
 
-// transfor matrix
+/**  
+ * transfor matrix
+ */
 const _T = [math.matrix([
     [1, 0, 0],
     [0, 0, 1],
@@ -108,7 +122,9 @@ C3CubeUnit.prototype.T3 = [
     math.inv(_T[1]),
     math.inv(_T[2])
 ]
-// encode i, j, k to 2, 3, 5
+/** 
+ * ijk base encoding, i<j<k
+ */ 
 C3CubeUnit.prototype.ijk = [2, 3, 5]
 
 C3CubeUnit.operate = function(axis) {
@@ -124,7 +140,7 @@ C3CubeUnit.operate = function(axis) {
     // after orientation transfer, permute i, j, k
     for(let i=0;i<3;i++){
         for(let j=i;j<3;j++){
-            if(this.o._data[i] > this.o._data[j]) {
+            if(math.abs(this.o._data[i]) > math.abs(this.o._data[j])) {
                 let tmp = this.o._data[i];
                 this.o._data[i] = this.o._data[j];
                 this.o._data[j] = tmp;
