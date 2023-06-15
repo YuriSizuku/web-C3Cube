@@ -13,17 +13,18 @@
     </script>
     
     <script type="module">
-        import {C3Cube} from 'c3cube';
+        import {C3Cube, C3CubeUtil} from 'c3cube';
         import * as c3cubeg from 'c3cubeg';
         window.C3Cube = C3Cube;
+        window.C3CubeUtil = C3CubeUtil;
         window.c3cubeg = c3cubeg;
 
         var C3 = new C3Cube(3);
         window.C3 = C3;
         C3.operate(2, 1);
-        C3.operate(2, 1);
-        C3.operate(2, 1);
-        C3.operate(2, 1);
+        // C3.operate(2, 1);
+        // C3.operate(2, 1);
+        // C3.operate(2, 1);
         C3.print_status();
     </script>
 

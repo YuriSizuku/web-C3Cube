@@ -1,6 +1,6 @@
 # C3Cube
 
-☘️ This is a web implementation for n order Rubik's Cube. The math model of this project is documented below.  
+☘️ This is a **web/nodejs** implementation for n order Rubik's Cube with internal status transfer and rendering. The math model of this project is documented below.  
 
 ![c3cube](screenshot/c3cube.png)
 
@@ -8,7 +8,7 @@
 
 ### (1) Cube Introduce  
 
-We define the unit is **the piece on the cube surface**. There are 3 types of unit: **corner**, **edge**, **inner** unit.  We can see 3 colors on corner unit, 2 colors on edge unit and 1 color on inner unit. In n-order Rubik's Cube (**n-cube**), there are $n^3-(n-2)^3$ unit on cube. Among them are $8$ corner units, $12(n-2)$ edge units, and $6(n-2)^2$ inner units.  
+We define the piece is **the unit piece on the cube surface**. There are 3 types of piece: **corner**, **edge**, **inner** piece.  We can see 3 colors on corner piece, 2 colors on edge piece and 1 color on inner piece. In n-order Rubik's Cube (**n-cube**), there are $n^3-(n-2)^3$ piece on cube. Among them are $8$ corner pieces, $12(n-2)$ edge pieces, and $6(n-2)^2$ inner pieces.  
 
 There are 6 faces in cube, as **front, back, left, right, up, Down**, which make the **face collection** $\{f, b, l, r, u, d\}$. We use 6 different colors painted on each face, as **Red, Orange, White, Yellow, Blue, Green, None**, which make the **color collection** $\{R,O,W,Y,B,G,N\}$. $N$ is the dummy part to describe no color.  We assum that the cube observe this color mapping:  
 
@@ -21,9 +21,9 @@ There are 6 faces in cube, as **front, back, left, right, up, Down**, which make
 \end {align}
 ```
 
-### (2) Unit Piece Coordinate  
+### (2) Piece Coordinate  
 
-We put the **n-cube** (n>=3) center to $(0, 0, 0)$ and assum that the cube side length as $\lceil n/2 \rceil$. So that we can get the coordinate of each surface unit and they are all integers. The range of cooridinate is $[(n+1) \mod 2, \lfloor n/2 \rfloor]$. We use $(h, k, l)$ to represent the unit piece position.  
+We put the **n-cube** (n>=3) center to $(0, 0, 0)$ and assum that the cube side length as $\lceil n/2 \rceil$. So that we can get the coordinate of each surface piece and they are all integers. The range of cooridinate is $[(n+1) \mod 2, \lfloor n/2 \rfloor]$. We use $(h, k, l)$ to represent the piece position.  
 
 ```math
 \begin {align}
@@ -35,9 +35,9 @@ We put the **n-cube** (n>=3) center to $(0, 0, 0)$ and assum that the cube side 
 \end {align}
 ```
 
-### (3) Unit Piece Rotate  
+### (3) Piece Rotate  
 
-We use $(h, k, l)$ to indicate postion, $(i, j, k)$ to indicate oritation, and $(c_1, c_2, c_3)$ to indicate color, which is correspond to oritation. One step rotate on unit piece is 90°. We define the anti-clock for positive direction and the unit piece operation $Fu(h, k, l)$ is as below.  
+We use $(h, k, l)$ to indicate postion, $(i, j, k)$ to indicate oritation, and $(c_1, c_2, c_3)$ to indicate color, which is correspond to oritation. One step rotate on piece is 90°. We define the anti-clock for positive direction and the piece operation $Fu(h, k, l)$ is as below.  
 
 ```math
 \begin{align}
@@ -70,7 +70,7 @@ T_z = \begin{pmatrix}
 \end{align}
 ```
 
-In this equation,  $T$ is the rotate transfor operation.  As the unit surafce postion rotate equal to opposite axies rotate, so that the matrix on $(h, k, l)$ and $(i, j, k)$ are reverse.  
+In this equation,  $T$ is the rotate transfor operation.  As the piece surafce postion rotate equal to opposite axies rotate, so that the matrix on $(h, k, l)$ and $(i, j, k)$ are reverse.  
 
 If $(i, j, k)$ is not observe to right-hand corrdinate, before rotate, it should be applied mirror operation to right-hand; And after rotate,  the sequence of $(i', j', k')$ shoud be permute to right-hand sequence. We use the equations below to adjust oritation rotate to right-hand coordinate. The permute is that sort the sequence of both oritation and color simultaneous to make oritation sequence to i, j, k.  
 
@@ -85,7 +85,7 @@ If $(i, j, k)$ is not observe to right-hand corrdinate, before rotate, it should
 
 ### (4) Cube Operation  
 
-The operation on cube is that rotate a plane 90° by an axis. The unit piece on this plane are rotating together. We use $G(t)$ to select the coordinate in axis $t$, and $F(t, l)$ to represents one operation on axis a and the plain coordinate on axis $t$ is $l$.  
+The operation on cube is that rotate a plane 90° by an axis. The piece on this plane are rotating together. We use $G(t)$ to select the coordinate in axis $t$, and $F(t, l)$ to represents one operation on axis a and the plain coordinate on axis $t$ is $l$.  
 
 ```math
 \begin{align}
@@ -107,8 +107,8 @@ Here are some operation denote methods:
 
 ## C3Cube status
 
-These examples are about innercorner surface unit 3-cube
-The corner unit:  
+These examples are about innercorner surface piece 3-cube
+The corner piece:  
 | color | position |orientation|
 | ----  | -------- | --------- |
 |  RYB  |( 1, 1, 1)|( i, j, k) |
@@ -120,7 +120,7 @@ The corner unit:
 |  RWB  |( 1,-1, 1)|( i,-j, k) |
 |  RWG  |( 1,-1,-1)|( i,-j,-k) |
 
-The edge unit:
+The edge piece:
 | color | position |orientation|
 | ----  | -------- | --------- |
 |  RNB  |( 1, 0, 1)|( i, j, k) |
@@ -136,7 +136,7 @@ The edge unit:
 |  ONG  |(-1, 0,-1)|(-i, j,-k) |
 |  NWG  |( 0,-1,-1)|( i,-j,-k) |
 
-The inner unit:
+The inner piece:
 | color | position |orientation|
 | ----  | -------- | --------- |
 |  NRN  |( 1, 0, 0)|( i, j, k) |
