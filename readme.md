@@ -85,13 +85,13 @@ If $(i, j, k)$ is not observe to right-hand corrdinate, before rotate, it should
 
 ### (4) Cube Operation  
 
-The operation on cube is that rotate a plane 90° by an axis. The unit piece on this plane are rotating together. We use $G(t)$ to select the coordinate in axis $t$, and $F(t, i)$ to represents one operation on axis a and the plain coordinate on axis $t$ is $i$.  
+The operation on cube is that rotate a plane 90° by an axis. The unit piece on this plane are rotating together. We use $G(t)$ to select the coordinate in axis $t$, and $F(t, l)$ to represents one operation on axis a and the plain coordinate on axis $t$ is $l$.  
 
 ```math
 \begin{align}
 &G(t) = \{c|c \in \{h, k, l\}, \text{c is on axis t} \}\ \\
-&F(t, i) = \prod Fu(h, k, l) \\
-&G(t) \equiv i
+&F(t, l) = \prod Fu(h, k, l) \\
+&G(t) \equiv l
 \end{align}
 ```
 
@@ -116,7 +116,7 @@ The corner unit:
 |  OYB  |(-1, 1, 1)|(-i, j, k) |
 |  OYG  |(-1, 1,-1)|(-i, j,-k) |
 |  OWB  |(-1,-1, 1)|(-i,-j, k) |
-|  OBG  |(-1,-1,-1)|(-i,-j,-k) |
+|  OWG  |(-1,-1,-1)|(-i,-j,-k) |
 |  RWB  |( 1,-1, 1)|( i,-j, k) |
 |  RWG  |( 1,-1,-1)|( i,-j,-k) |
 

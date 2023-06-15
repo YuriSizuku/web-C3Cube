@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <head>
+    <script src="https://unpkg.com/mathjs@11.8.0/lib/browser/math.js"></script>
     <script type="importmap">
         {
             "imports": 
@@ -11,12 +12,19 @@
         }
     </script>
     
-    <script src="https://unpkg.com/mathjs@11.8.0/lib/browser/math.js"></script>
     <script type="module">
         import {C3Cube} from 'c3cube';
         import * as c3cubeg from 'c3cubeg';
         window.C3Cube = C3Cube;
         window.c3cubeg = c3cubeg;
+
+        var C3 = new C3Cube(3);
+        window.C3 = C3;
+        C3.operate(2, 1);
+        C3.operate(2, 1);
+        C3.operate(2, 1);
+        C3.operate(2, 1);
+        C3.print_status();
     </script>
 
     <title>C3Cube</title>
