@@ -4,7 +4,7 @@
 
 ![c3cube](screenshot/c3cube.png)
 
-## Rubik's Cube Math Theory  
+## Rubik's Cube Math Theory
 
 ### (1) Cube Introduce  
 
@@ -105,7 +105,7 @@ Here are some operation denote methods:
   
   For example, X(2)X(-2)Y(2, 2)Y(2, -1)
 
-## C3Cube status
+### (5) C3Cube Pieces Example
 
 These examples are about innercorner surface piece 3-cube
 The corner piece:  
@@ -145,6 +145,10 @@ The inner piece:
 |  NGN  |( 0, 0,-1)|( i, j,-k) |
 |  NWN  |( 0,-1, 0)|( i,-j, k) |
 |  NON  |(-1, 0, 0)|(-i, j, k) |
+
+## Rubik's Cube Solve Method  
+
+todo  
 
 ## Reference  
 

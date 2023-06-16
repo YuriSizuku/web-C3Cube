@@ -363,8 +363,11 @@ C3CubeUtil.prototype.enum_inner = function(n) {
             for(let r1=-1;r1<=1;r1+=2) {
                 for(let r2=-1;r2<=1;r2+=2) {
                     coords.push([0, b*r1, i*r2]);
+                    coords.push([0, i*r2, b*r1]);
                     coords.push([b*r1, 0, i*r2]);
+                    coords.push([i*r2, 0, b*r1]);
                     coords.push([b*r1, i*r2, 0]);
+                    coords.push([i*r2, b*r1, 0]);
                 }
             }
         }
@@ -385,7 +388,6 @@ C3CubeUtil.prototype.enum_inner = function(n) {
     }
     return coords;
 }
-
 
 /**
  * enumerate the coordinates of n-cube axies pieces
@@ -459,14 +461,13 @@ C3CubeUtil.prototype.dist_cube = function(c1, c2) {
     var x, y, z;
     var u1, u2;
     var d = 0;
-    for(i in coors) {
+    for(let i in coors) {
         x = coors[i][0]; y = coors[i][1]; z = coors[i][2]
         u1 = c1.pieces[x][y][z]; u2 = c2.pieces[x][y][z];
         d += this.dist_pieces(u1, u2);
     }
     return d;
 }
-
 
 /**
  *  calculate the different status piece between two cubes
@@ -499,10 +500,9 @@ C3CubeUtil.prototype.diff_cube = function(c1, c2) {
 C3CubeUtil.prototype.dist_pieces = function(u1, u2) {
    var t1 = math.subtract(math.sign(u2.p), math.sign(u1.p));
    var t2 = math.subtract(math.sign(u2.o), math.sign(u1.o));
-   d1 = math.sqrt(math.multiply(t1, math.transpose(t1)));
-   d2 = math.sqrt(math.multiply(t2, math.transpose(t2)));
+   var d1 = math.sqrt(math.multiply(math.transpose(t1), t1).get([0,0]));
+   var d2 = math.sqrt(math.multiply(math.transpose(t2), t2).get([0,0]));
    return d1 + d2;
 }
-
 
 export {C3Cube, C3CubePiece, C3CubeUtil}
