@@ -1,5 +1,10 @@
 "use strict";
 
+/**
+ * c3cube_solve.js, n-cube solve method implementation
+ *   v0.0, developed by devseed
+ */
+
 import { C3Cube } from "./c3cube_core.js";
 
 var math_dummy;

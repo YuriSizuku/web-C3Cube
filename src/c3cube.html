@@ -11,21 +11,13 @@
             }
         }
     </script>
-    
+
     <script type="module">
         import {C3Cube, C3CubeUtil} from 'c3cube';
-        import * as c3cubeg from 'c3cubeg';
+        import {C3CubeGraphic} from 'c3cubeg';
         window.C3Cube = C3Cube;
         window.C3CubeUtil = C3CubeUtil;
-        window.c3cubeg = c3cubeg;
-
-        var C3 = new C3Cube(3);
-        window.C3 = C3;
-        C3.operate(2, 1);
-        // C3.operate(2, 1);
-        // C3.operate(2, 1);
-        // C3.operate(2, 1);
-        C3.print_status();
+        window.C3CubeGraphic = C3CubeGraphic;
     </script>
 
     <title>C3Cube</title>
@@ -70,13 +62,16 @@
         }
 
         window.onresize = (event) => {
-            var canvas = document.getElementById('canvas');
+            const canvas = document.getElementById('canvas');
             scale_full2(canvas, 4/3);
         };
 
         window.onload = (event) => {
-            var canvas = document.getElementById('canvas');
+            const canvas = document.getElementById('canvas');
+            const c3cubeg = new C3CubeGraphic(20, canvas);
             scale_full2(canvas, 4/3);
+            c3cubeg.render();
+            window.c3cubeg = c3cubeg;
         };
 
         window.onkeydown = (event) => {

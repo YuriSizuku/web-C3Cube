@@ -1,5 +1,10 @@
 "use strict";
 
+/**
+ * c3cube_core.js, n-cube status and operation implementation
+ *   v0.1, developed by devseed
+ */
+
 var math_dummy;
 if (typeof process !== 'undefined') { // node
     math_dummy = await import("mathjs");
@@ -41,8 +46,8 @@ C3Cube.prototype.init_pieces = function() {
     }
 
     // corner piece, 8
-    for(let i in coords_corner) {
-        p = coords_corner[i];
+    for(let idx in coords_corner) {
+        p = coords_corner[idx];
         o = math.sign(p);
         c = [cmap[this.color_idx([o[0], 0, 0])], 
             cmap[this.color_idx([0, o[1], 0])],
@@ -51,8 +56,8 @@ C3Cube.prototype.init_pieces = function() {
     }
 
     // edge piece, 12(n-2)
-    for(let i in coords_edge) {
-        p = coords_edge[i];
+    for(let idx in coords_edge) {
+        p = coords_edge[idx];
         o = math.add(math.sign(p), math.subtract([1, 1, 1],  math.abs(math.sign(p))));
         c = ['N', 'N', 'N'];
         if(math.abs(p[0])<b) c = [cmap[0], 
@@ -65,8 +70,8 @@ C3Cube.prototype.init_pieces = function() {
     }
 
     // inner piece, 6(n-2)^2
-    for(let i in coords_inner) {
-        p = coords_inner[i];
+    for(let idx in coords_inner) {
+        p = coords_inner[idx];
         o = math.add(math.sign(p), math.subtract([1, 1, 1],  math.abs(math.sign(p))));
         c = ['N', 'N', 'N'];
         if(math.equal(math.abs(p[0]), b)) c = [cmap[0], cmap[this.color_idx([o[0], 0, 0])], cmap[0]];
@@ -85,13 +90,13 @@ C3Cube.prototype.print_status = function() {
 
     console.log(`C3Cube order=${this.order}, corner=${this.ncorner}, edge=${this.nedge}, inner=${this.ninner}`);
 
-    for(let i in coords) {
-        var p = coords[i];
+    for(let idx in coords) {
+        var p = coords[idx];
         pieces[p[0]][p[1]][p[2]].print_status();
     }
 }
 
-C3Cube.prototype.print_operates = function() {
+C3Cube.prototype.print_operates = function(type) {
 
 }
 
@@ -113,8 +118,8 @@ C3Cube.prototype.operate = function(axis, l) {
     var b = this.imax;
     var pieces = this.pieces;
     var coords = (new C3CubeUtil()).enum_axis(this.order, axis, l);
-    for(let i in coords) {
-        pieces[coords[i][0]][coords[i][1]][coords[i][2]].operate(axis, l);
+    for(let idx in coords) {
+        pieces[coords[idx][0]][coords[idx][1]][coords[idx][2]].operate(axis, l);
     }
 } 
 
@@ -138,7 +143,7 @@ C3Cube.prototype.color_idx = function(o) {
     return math.dot(ta, tb)/2;
 }
 
-/**
+/** the piece on the surface of cube
  * @param {Array} p, position vector (1, 1, 1)
  * @param {Array} o, oritation vector, like (1, 1, 1) * (i, j, k)
  * @param {Array} c, color vector, like ('R', 'Y', 'B')
@@ -153,7 +158,6 @@ const C3CubePiece = function(p, o, c, p0=null) {
     if(p0==null) {
         this.p0 = math.transpose(math.matrix([p]));
     }
-    // console.log(p, o, c);
 }
 
 const _T = [math.matrix([
@@ -168,14 +172,10 @@ const _T = [math.matrix([
     [ 0, 1, 0],
     [-1, 0, 0],
     [ 0, 0, 1]
-])]
+])];
 C3CubePiece.prototype.T = _T;
-C3CubePiece.prototype.T3 = [
-    math.inv(_T[0]), 
-    math.inv(_T[1]),
-    math.inv(_T[2])
-]
-C3CubePiece.prototype.ijkbase = [1, 2, 3]
+C3CubePiece.prototype.T3 = [math.inv(_T[0]), math.inv(_T[1]), math.inv(_T[2])];
+C3CubePiece.prototype.ijkbase = [1, 2, 3];
 
 C3CubePiece.prototype.print_status = function() {
     var p0 = math.transpose(this.p0)._data[0];
@@ -210,9 +210,7 @@ C3CubePiece.prototype.operate = function(axis) {
     }
 }
 
-const C3CubeUtil = function() {
-
-}
+const C3CubeUtil = function() {}
 
 /**
  * load the encodes operate str
@@ -452,7 +450,8 @@ C3CubeUtil.prototype.enum_axis = function(n, axis, l) {
 }
 
 /**
- *  calculate the distance between two cubes
+ * calculate the distance between two cubes 
+ * according to the position and orientation 
  * @param {C3Cube} c1 
  * @param {C3Cube} c2 
  */
@@ -470,20 +469,52 @@ C3CubeUtil.prototype.dist_cube = function(c1, c2) {
 }
 
 /**
+ * calculate the distance between two cubes 
+ * according to the coorespond position color
+ * @param {C3Cube} c1 
+ * @param {C3Cube} c2 
+ * @returns 
+ */
+C3CubeUtil.prototype.dist_cube2 = function(c1, c2) {
+    if(c1.order!=c2.order) throw new Error("cube order must be the same order");
+    var n = c1.order;
+    var coords = this.enum_all(n);
+    var pieces1 = [], pieces2 = [];
+    for (let idx in coords) {
+        var p = coords[idx];
+        var u1 = c1.pieces[p[0]][p[1]][p[2]];
+        var u2 = c2.pieces[p[0]][p[1]][p[2]];
+        var p1 = [u1.p.get([0, 0]), u1.p.get([1, 0]),  u1.p.get([2, 0])];
+        var p2 = [u2.p.get([0, 0]), u2.p.get([1, 0]),  u2.p.get([2, 0])];
+        pieces1[this.encode_pos(n, p1)] = u1;
+        pieces2[this.encode_pos(n, p2)] = u2;
+    }
+
+    var d = 0;
+    for (let idx in coords) {
+        var p = coords[idx];
+        var u1 = pieces1[this.encode_pos(n, p)];
+        var u2 = pieces2[this.encode_pos(n, p)];
+        d += this.dist_pieces2(u1, u2);
+    }
+    return d;
+}
+
+/**
  *  calculate the different status piece between two cubes
  * @param {C3Cube} c1 
  * @param {C3Cube} c2 
  * @return {Array{C3CubePiece}} 
  */
 C3CubeUtil.prototype.diff_cube = function(c1, c2) {
-    if(c1.order!=c2.order) throw new Error("cube order must be the same to compare");
+    if(c1.order!=c2.order) throw new Error("cube order must be the same order");
 
     var coords = this.enum_all(c1.order);
     var diffs = [];
     var x, y, z;
     var u1, u2;
-    for(let i in coords) {
-        x = coords[i][0]; y = coords[i][1]; z = coords[i][2];
+    for(let idx in coords) {
+        x = coords[idx][0]; y = coords[idx][1]; z = coords[idx][2];
         u1 = c1.pieces[x][y][z]; u2 = c2.pieces[x][y][z];
         if(!math.deepEqual(u1.p, u2.p) || !math.deepEqual(u1.o, u2.o)) {
             diffs.push([x, y, z]);
@@ -504,5 +535,15 @@ C3CubeUtil.prototype.dist_pieces = function(u1, u2) {
    var d2 = math.sqrt(math.multiply(math.transpose(t2), t2).get([0,0]));
    return d1 + d2;
 }
+
+/**
+ *  calculate the distance between two piece in same position
+ * @param {C3CubePiece} u1 
+ * @param {C3CubePiece} u2 
+ */
+C3CubeUtil.prototype.dist_pieces2 = function(u1, u2) {
+    if(!math.deepEqual(u1.p, u2.p)) throw new Error("piece must be in same position");
+    return (u1.c[0]!=u2.c[0]) + (u1.c[1]!=u2.c[1]) + (u1.c[2]!=u2.c[2]);
+ }
 
 export {C3Cube, C3CubePiece, C3CubeUtil}

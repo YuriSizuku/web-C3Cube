@@ -1,6 +1,6 @@
 # C3Cube
 
-☘️ This is a **web/nodejs** implementation for n order Rubik's Cube with internal status transfer and rendering. The math model of this project is documented below.  
+☘️ This is a **web/nodejs** implementation for n order Rubik's Cube. The math model of this project is documented below.  
 
 ![c3cube](screenshot/c3cube.png)
 
@@ -23,7 +23,7 @@ There are 6 faces in cube, as **front, back, left, right, up, Down**, which make
 
 ### (2) Piece Coordinate  
 
-We put the **n-cube** (n>=3) center to $(0, 0, 0)$ and assum that the cube side length as $\lceil n/2 \rceil$. So that we can get the coordinate of each surface piece and they are all integers. The range of cooridinate is $[(n+1) \mod 2, \lfloor n/2 \rfloor]$. We use $(h, k, l)$ to represent the piece position.  
+We put the **n-cube** (n>=3) center to $(0, 0, 0)$ and assum that the cube side length as $1$. If n is even number, we use the center of each piece for coordinate; else use corner for coordinate. So that we can get the coordinate of each surface piece and they are all integers. The range of cooridinate is $[(n+1) \mod 2, \lfloor n/2 \rfloor]$. We use $(h, k, l)$ to represent the piece position.  
 
 ```math
 \begin {align}
@@ -105,7 +105,11 @@ Here are some operation denote methods:
   
   For example, X(2)X(-2)Y(2, 2)Y(2, -1)
 
-### (5) C3Cube Pieces Example
+## Rubik's Cube Solve Method  
+
+todo  
+
+## Rubik's Cube Pieces Example
 
 These examples are about innercorner surface piece 3-cube
 The corner piece:  
@@ -145,10 +149,6 @@ The inner piece:
 |  NGN  |( 0, 0,-1)|( i, j,-k) |
 |  NWN  |( 0,-1, 0)|( i,-j, k) |
 |  NON  |(-1, 0, 0)|(-i, j, k) |
-
-## Rubik's Cube Solve Method  
-
-todo  
 
 ## Reference  
 

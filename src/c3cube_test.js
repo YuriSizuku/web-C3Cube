@@ -14,8 +14,8 @@ C3CubeCoreTest.prototype.validate_pos = function() {
     var n = this.c0.order;
     var coords = this.util.enum_all(n);
     var coords_set = new Set();
-    for(let i in coords) {
-        var p0 = coords[i];
+    for(let idx in coords) {
+        var p0 = coords[idx];
         var d = this.util.encode_pos(n, p0);
         var p1 = this.util.decode_pos(n, d);
         assert.deepEqual(p0, p1);
@@ -39,8 +39,8 @@ C3CubeCoreTest.prototype.validate_enum = function() {
     assert.equal(coords_edge.length, this.c0.nedge);
     assert.equal(coords_inner.length, this.c0.ninner);
     coords = coords.concat(coords_corner, coords_edge, coords_inner);
-    for (let i in coords) {
-        coords_set.add(this.util.encode_pos(n, coords[i]));       
+    for (let idx in coords) {
+        coords_set.add(this.util.encode_pos(n, coords[idx]));       
     }
     assert.equal(coords_set.size, this.c0.npiece);
     this.logi("validate_enum", "corner, edge, inner passed");
@@ -51,22 +51,22 @@ C3CubeCoreTest.prototype.validate_enum = function() {
     for(let axis=0; axis<3;axis++) {
         for(let i=-b;i<0;i++) {
             coords_tmp =  this.util.enum_axis(n, axis, i);
-            for (let j in coords_tmp) {
-                assert.ok(coords_set.has(this.util.encode_pos(n, coords_tmp[j])));
+            for (let idx in coords_tmp) {
+                assert.ok(coords_set.has(this.util.encode_pos(n, coords_tmp[idx])));
             }
             coords_axis[axis] = coords_axis[axis].concat(coords_tmp);
         }
         if(a==0) {
             coords_tmp = this.util.enum_axis(n, axis, 0)
-            for (let j in coords_tmp) {
-                assert.ok(coords_set.has(this.util.encode_pos(n, coords_tmp[j])));
+            for (let idx in coords_tmp) {
+                assert.ok(coords_set.has(this.util.encode_pos(n, coords_tmp[idx])));
             }
             coords_axis[axis] = coords_axis[axis].concat(coords_tmp);
         }
         for(let i=1;i<=b;i++) {
             coords_tmp = this.util.enum_axis(n, axis, i);
-            for (let j in coords_tmp) {
-                assert.ok(coords_set.has(this.util.encode_pos(n, coords_tmp[j])));
+            for (let idx in coords_tmp) {
+                assert.ok(coords_set.has(this.util.encode_pos(n, coords_tmp[idx])));
             }
             coords_axis[axis] = coords_axis[axis].concat(coords_tmp);
         }
@@ -148,34 +148,46 @@ C3CubeCoreTest.prototype.validate_operate = function() {
             c1 = new C3Cube(n);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
+            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
+            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
+            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, l);
             assert.equal(this.util.dist_cube(c0, c1), 0);
+            assert.equal(this.util.dist_cube2(c0, c1), 0);
         }
         if(a==0) {
             c1 = new C3Cube(n);
             c1.operate(axis, 0);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
+            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, 0);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
+            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, 0);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
+            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, 0);
             assert.equal(this.util.dist_cube(c0, c1), 0);
+            assert.equal(this.util.dist_cube2(c0, c1), 0);
         }
         for(let l=1; l<=b; l++) {
             c1 = new C3Cube(n);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
+            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
+            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
+            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, l);
             assert.equal(this.util.dist_cube(c0, c1), 0);
+            assert.equal(this.util.dist_cube2(c0, c1), 0);
         }
         this.logi("validate_operate", `operate on axis ${axis} passed`);
     }
