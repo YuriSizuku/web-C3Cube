@@ -91,10 +91,9 @@ C3CubeCoreTest.prototype.validate_initstatus = function() {
     color_count = [0, 0, 0, 0, 0, 0, 0];
     for(let idx in coords_corner) {
         var p = coords_corner[idx];
-        var u = this.c0.pieces[p[0]][p[1]][p[2]];
+        var u = this.c0.pieces[this.c0.encode_pos(p)];
         assert.deepEqual(math.sign(u.p), math.sign(u.o));
-        assert.deepEqual(math.abs(u.o), 
-            math.matrix([[u.ijkbase[0]], [u.ijkbase[1]], [u.ijkbase[2]]]));
+        assert.deepEqual(math.abs(u.o), [u.ijkbase[0], u.ijkbase[1], u.ijkbase[2]]);
         color_count[color_rmap[u.c[0]]] ++;
         color_count[color_rmap[u.c[1]]] ++;
         color_count[color_rmap[u.c[2]]] ++;
@@ -109,9 +108,8 @@ C3CubeCoreTest.prototype.validate_initstatus = function() {
     color_count = [0, 0, 0, 0, 0, 0, 0];
     for(let idx in coords_edge) {
         var p = coords_edge[idx];
-        var u = this.c0.pieces[p[0]][p[1]][p[2]];
-        assert.deepEqual(math.abs(u.o), 
-            math.matrix([[u.ijkbase[0]], [u.ijkbase[1]], [u.ijkbase[2]]]));
+        var u = this.c0.pieces[this.c0.encode_pos(p)];
+        assert.deepEqual(math.abs(u.o), [u.ijkbase[0], u.ijkbase[1], u.ijkbase[2]]);
         color_count[color_rmap[u.c[0]]] ++;
         color_count[color_rmap[u.c[1]]] ++;
         color_count[color_rmap[u.c[2]]] ++;
@@ -126,11 +124,9 @@ C3CubeCoreTest.prototype.validate_initstatus = function() {
     color_count = [0, 0, 0, 0, 0, 0, 0];
     for(let idx in coords_inner) {
         var p = coords_inner[idx];
-        var u = this.c0.pieces[p[0]][p[1]][p[2]];
-        assert.deepEqual(math.abs(u.o), 
-            math.matrix([[u.ijkbase[0]], [u.ijkbase[1]], [u.ijkbase[2]]]));
+        var u = this.c0.pieces[this.c0.encode_pos(p)];
+        assert.deepEqual(math.abs(u.o), [u.ijkbase[0], u.ijkbase[1], u.ijkbase[2]]);
         color_count[color_rmap[u.c[1]]] ++;
-        assert.equal(u.c[2], this.c0.colormap[0]);
     }
     for(let i=2; i<color_count.length;i++) {
         assert.equal(color_count[1], color_count[2]);
@@ -148,46 +144,38 @@ C3CubeCoreTest.prototype.validate_operate = function() {
             c1 = new C3Cube(n);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
-            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
-            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
-            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, l);
             assert.equal(this.util.dist_cube(c0, c1), 0);
-            assert.equal(this.util.dist_cube2(c0, c1), 0);
         }
         if(a==0) {
             c1 = new C3Cube(n);
             c1.operate(axis, 0);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
-            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, 0);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
-            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, 0);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
-            assert.ok(this.util.dist_cube2(c0, c1) > 0);
             c1.operate(axis, 0);
             assert.equal(this.util.dist_cube(c0, c1), 0);
-            assert.equal(this.util.dist_cube2(c0, c1), 0);
         }
         for(let l=1; l<=b; l++) {
             c1 = new C3Cube(n);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
-            assert.ok(this.util.dist_cube2(c0, c1) > 0);
+            assert.ok(this.util.dist_cube(c0, c1) > 0);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
-            assert.ok(this.util.dist_cube2(c0, c1) > 0);
+            assert.ok(this.util.dist_cube(c0, c1) > 0);
             c1.operate(axis, l);
             assert.ok(this.util.dist_cube(c0, c1) > 0);
-            assert.ok(this.util.dist_cube2(c0, c1) > 0);
+            assert.ok(this.util.dist_cube(c0, c1) > 0);
             c1.operate(axis, l);
             assert.equal(this.util.dist_cube(c0, c1), 0);
-            assert.equal(this.util.dist_cube2(c0, c1), 0);
+            assert.equal(this.util.dist_cube(c0, c1), 0);
         }
         this.logi("validate_operate", `operate on axis ${axis} passed`);
     }
@@ -207,21 +195,6 @@ function debug_c3() {
     var c3 = new C3Cube(3);
     var util = new C3CubeUtil();
     console.log(c3);
-    // c3.print_status();
-
-    // debug encode
-    var c3_d3 = util.encode_pos(3, [1, 1, 1]);
-    assert.equal(c3_d3, 26);
-    var c3_p3 = util.decode_pos(3, c3_d3);
-    assert.ok(math.deepEqual(c3_p3, [1, 1, 1]))
-
-    // debug enum
-    var c3_coords = util.enum_all(3);
-    var c3_coords_corner = util.enum_corner(3);
-    var c3_coords_edge = util.enum_edge(3);
-    var c3_coords_inner = util.enum_inner(3);
-    var c3_F = util.enum_axis(3, 0, 1);
-    var c3_x0 = util.enum_axis(3, 0, 0);
 
     // debug dist
     var c3z1 = new C3Cube(3);
@@ -234,20 +207,6 @@ function debug_c4(){
     var c4 = new C3Cube(4);
     var util = new C3CubeUtil();
     console.log(c4);
-    
-    // debug encode
-    var c4_d4 = util.encode_pos(4, [2, 2, 2]);
-    assert.equal(c4_d4, 63);
-    var c4_p4 = util.decode_pos(4, c4_d4);
-    assert.ok(math.deepEqual(c4_p4, [2, 2, 2]))
-
-    // debug enum
-    var c4_coords = util.enum_all(4);
-    var c4_coords_corner = util.enum_corner(4);
-    var c4_coords_edge = util.enum_edge(4);
-    var c4_coords_inner = util.enum_inner(4);
-    var c4_F = util.enum_axis(4, 0, 2);
-    var c4_x1 = util.enum_axis(4, 0, 1);
 
     // debug dist
     var c4z2 = new C3Cube(4);

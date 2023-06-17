@@ -6,6 +6,7 @@
             "imports": 
             {
                 "three": "https://unpkg.com/three@0.152.0/build/three.module.js",
+                "three/examples/jsm/": "https://unpkg.com/three@0.152.0/examples/jsm/",
                 "c3cube": "./c3cube_core.js",
                 "c3cubeg": "./c3cube_graphic.js"
             }
@@ -13,11 +14,16 @@
     </script>
 
     <script type="module">
+        import * as THREE from 'three' 
         import {C3Cube, C3CubeUtil} from 'c3cube';
         import {C3CubeGraphic} from 'c3cubeg';
+        import Stats from 'three/examples/jsm/libs/stats.module.js'
+        window.THREE = THREE;
+        window.stats = new Stats();
         window.C3Cube = C3Cube;
         window.C3CubeUtil = C3CubeUtil;
         window.C3CubeGraphic = C3CubeGraphic;
+        document.body.appendChild(stats.dom);
     </script>
 
     <title>C3Cube</title>
@@ -52,7 +58,16 @@
 
     <script type="text/javascript">
         const LONG_CLICK_TIME = 1200; 
-        var g_lastpressdown; // for longpress 
+        var g_lastpressdown; // for longpress
+        var g_lastframetick = 0;
+
+        function onframe(tick) {
+            requestAnimationFrame(onframe);
+            stats.update();
+            c3cubeg.request_frame();
+            g_lastframetick = tick;
+        }
+
         function toggle_webinfo() {
 
         }
@@ -68,10 +83,12 @@
 
         window.onload = (event) => {
             const canvas = document.getElementById('canvas');
-            const c3cubeg = new C3CubeGraphic(20, canvas);
-            scale_full2(canvas, 4/3);
-            c3cubeg.render();
+            const c3cube = new C3Cube(20)
+            const c3cubeg = new C3CubeGraphic(c3cube, canvas);
             window.c3cubeg = c3cubeg;
+            window.c3cube = c3cube;
+            scale_full2(canvas, 4/3);
+            onframe();
         };
 
         window.onkeydown = (event) => {
