@@ -1,5 +1,10 @@
 "use strict";
 
+/**
+ * c3cube_test.js, to test the functions for c3cube
+ *   v0.1.1, developed by devseed
+ */
+
 import * as math from 'mathjs';
 import * as assert from 'assert';
 import {C3Cube, C3CubeUtil} from './c3cube_core.js';
@@ -23,6 +28,23 @@ C3CubeCoreTest.prototype.validate_pos = function() {
         coords_set.add(d);
     }
     this.logi("validate_pos", "coordinate encoding passed");
+}
+
+C3CubeCoreTest.prototype.validate_operatestr = function(operates_str, operates_gt) {
+    var operates = this.util.load_operates(operates_str);
+    assert.equal(operates_gt.length, operates.length);
+    for(let idx in operates) {
+        assert.deepEqual(operates[idx], operates_gt[idx]);
+    }
+   
+    var operates2_str = this.util.dump_operates(operates_gt);
+    var operates2 = this.util.load_operates(operates2_str);
+    assert.equal(operates_gt.length, operates2.length);
+    for(let idx in operates) {
+        assert.deepEqual(operates2[idx], operates_gt[idx]);
+    }
+    
+    this.logi("validate_operatestr", `"${operates_str}" passed`);
 }
 
 C3CubeCoreTest.prototype.validate_enum = function() {
@@ -177,7 +199,7 @@ C3CubeCoreTest.prototype.validate_operate = function() {
             assert.equal(this.util.dist_cube(c0, c1), 0);
             assert.equal(this.util.dist_cube(c0, c1), 0);
         }
-        this.logi("validate_operate", `operate on axis ${axis} passed`);
+        this.logi("validate_operate", `axis ${axis} passed`);
     }
 }
 
@@ -215,6 +237,13 @@ function debug_c4(){
     console.log(c4_dist_z2);
 }
 
+function operate_encode_test() {
+    var operate_test = new C3CubeCoreTest(3);
+    var operate_str = "X(1)Y(-1), Z(11) X(0, -1), X(1, 2), Y(-2,2)";
+    var operates = [[0, 1], [1, -1], [2, 11], [0, 0], [0, 0], [0, 0], [0, 1], [0, 1], [1, -2], [1, -2]];
+    operate_test.validate_operatestr(operate_str, operates);
+}
+
 function core_test(n) {
     var coretest = new C3CubeCoreTest(n);
     coretest.validate_pos();
@@ -225,8 +254,15 @@ function core_test(n) {
 
 // debug_c3();
 // debug_c4();
+operate_encode_test();
 core_test(3);
 core_test(4);
 core_test(5);
 core_test(6);
 core_test(7);
+
+/**
+ * history:
+ *   v0.1, add pos, enum, initstatus, operate test
+ *   v0.1.1, add operate encode test
+ */

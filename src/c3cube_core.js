@@ -2,7 +2,7 @@
 
 /**
  * c3cube_core.js, n-cube status and operation implementation
- *   v0.1, developed by devseed
+ *   v0.2, developed by devseed
  */
 
 var math_dummy;
@@ -21,7 +21,7 @@ const C3Cube = function(n) {
     this.ncorner = 8;
     this.nedge = 12*(n-2);
     this.ninner = 6*(n-2)*(n-2);
-    this.operates = []
+    this.operate_stack = []
     this.pieces = this.init_pieces();
 }
 
@@ -90,16 +90,24 @@ C3Cube.prototype.print_operates = function(type) {
 
 }
 
-C3Cube.prototype.push_operate = function(F) {
-    this.operates.push(F);
-    this.operate.apply(F);
+C3Cube.prototype.push_operate = function(axis, l) {
+    this.operate_stack.push([axis, l]);
+    this.operate(axis, l);
 }
 
-C3Cube.prototype.pop_operate = function() {
-    var F = this.operates.pop();
-    this.operate.apply(F);
-    this.operate.apply(F);
-    this.operate.apply(F);
+C3Cube.prototype.pop_operate = function(reserve=false) {
+    var end = this.operate_stack.length - 1;
+    if (end < 0) return null;
+    var F = [];
+    if(reserve) {
+        F = this.operate_stack[end];
+    }
+    else {
+        F = this.operate_stack.pop();
+        this.operate.apply(this, F);
+        this.operate.apply(this, F);
+        this.operate.apply(this, F);
+    }
     return F;
 }
 
@@ -217,12 +225,56 @@ C3CubePiece.prototype.operate = function(axis) {
 const C3CubeUtil = function() {}
 
 /**
- * load the encodes operate str
- * @param {String} operate_str 
+ * load the encodes operate str, such as X(2)X(-2)Y(2, 2)Y(2, -1)
+ * @param {String} operates_str 
  * @returns {Array.<int[2]>} operates
  */
-C3CubeUtil.prototype.load_operates = function(operate_str)  {
+C3CubeUtil.prototype.load_operates = function(operates_str)  {
     var operates = [];
+    var axis=0, l=1, times = 0;
+    var mode_axis=true, mode_fluse=false, mode_reverse=false;
+    var invalid = false;
+    for(let i in operates_str) {
+        var c = operates_str[i].toUpperCase();
+        if (c>='X' && c<='Z') {
+            if(mode_fluse) {
+                if(times<0) times = times%4 + 4;
+                for(let t=0; t<times; t++) operates.push([axis, l]);
+            }
+            if(c=='X') axis = 0;
+            else if (c=='Y') axis = 1;
+            else if (c=='Z') axis = 2;
+            times = 1;
+            l = 0;
+            mode_axis = true;
+            mode_reverse = false;
+            mode_fluse = true;
+        }
+        else if(c>='0' && c<='9') {
+            if(mode_axis) l = l*10 + (mode_reverse ? -parseInt(c): parseInt(c));
+            else times = mode_reverse ? -parseInt(c): parseInt(c);
+        }
+        else if(c==',') {
+            mode_reverse = false;
+            if(mode_axis)  mode_axis = false;
+        }
+        else if(c=='-') {
+            mode_reverse = true;
+        }
+        else if(c=='(' || c==')') {
+
+        }
+        else if(c==' '){
+
+        }
+        else invalid = true;
+        if(invalid) throw new Error(`invalide operate sequnce, in ${i} with char ${c}!`);
+    }
+    if(mode_fluse) {
+        if(times<0) times = times%4;
+        for(let t=0; t<times; t++) operates.push([axis, l]);
+        mode_fluse = false;
+    }
     return operates;
 }
 
@@ -232,8 +284,34 @@ C3CubeUtil.prototype.load_operates = function(operate_str)  {
  * @returns {string} operate_str
  */
 C3CubeUtil.prototype.dump_operates = function(operates) {
-    var operate_str = "";
-    return operate_str;
+    var times = 1;
+    var axis_map = {0: 'X', 1: 'Y', 2: 'Z'};
+    var last_operate;
+    var operates_str = "";
+    for(let idx in operates) {
+        if(idx>0) {
+            if(math.deepEqual(operates[idx], operates[idx-1])) {
+                times++;
+            }
+            else {
+                times = times%4;
+                var axis=last_operate[0];
+                var l=last_operate[1];
+                if(times==1) operates_str += `${axis_map[axis]}(${l})`;
+                else operates_str += `${axis_map[axis]}(${l},${times})`;
+                times = 1;
+            }
+        }
+        last_operate = operates[idx]; 
+    }
+
+    times = times%4;
+    var axis=last_operate[0];
+    var l=last_operate[1];
+    if(times==1) operates_str += `${axis_map[axis]}(${l})`;
+    else operates_str += `${axis_map[axis]}(${l},${times})`;
+    
+    return operates_str;
 }
 
 /**
@@ -503,7 +581,19 @@ C3CubeUtil.prototype.dist_pieces = function(u1, u2) {
   * @return {C3CubePiece[]}
   */
  C3CubeUtil.prototype.align_pieces = function(n, pieces) {
-
+    var pieces_aligned = [];
+    for(let idx in pieces) {
+        var piece = pieces[idx];
+        var idx2 = this.encode_pos(piece.p);
+        pieces_aligned[idx2] = piece;
+    }
+    return pieces_aligned;
  }
 
 export {C3Cube, C3CubePiece, C3CubeUtil}
+
+/**
+ * history: 
+ *   v0.1, initial version with cube status and operate
+ *   v0.2, cube operate stack, util functions for coordinate, operate encode
+ */

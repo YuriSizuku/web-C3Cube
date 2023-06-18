@@ -2,7 +2,7 @@
 
 /**
  * c3cube_solve.js, n-cube solve method implementation
- *   v0.0, developed by devseed
+ *   v0.1, developed by devseed
  */
 
 import { C3Cube } from "./c3cube_core.js";
@@ -18,3 +18,8 @@ const C3CubeSolve = function () {
 }
 
 export {C3CubeSolve}
+
+/**
+ * history
+ *   v0.1, todo
+ */
