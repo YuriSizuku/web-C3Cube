@@ -1,7 +1,12 @@
 # C3Cube
 
-☘️ This is a **web/nodejs** implementation for n order Rubik's Cube. The math model of this project is documented below.  
+☘️ This is a **webgl/nodejs** experiment project for n order Rubik's Cube. We try to use this for understanding how cube status changes. Also it is compatible with the mobile phone to play.  
 
+- `c3cube_core.js`, the status encoding and operate for cube
+- `c3cube_solve.js`, algorithms to sovle cube problem (todo)
+- `c3cube_graphic.js`, rendering the cube by `three.js`
+
+![c3cube](screenshot/c3cube_example1.png)
 ![c3cube](screenshot/c3cube.png)
 
 ## Rubik's Cube Math Theory

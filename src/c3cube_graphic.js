@@ -2,13 +2,20 @@
 
 /**
  * c3cube_graphic.js, cube render implementation
- *   v0.2, developed by devseed
+ *   v0.2.1, developed by devseed
  */
 
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { C3Cube, C3CubeUtil } from "./c3cube_core.js";
 
+/**
+ * transfor the coordinate of screen to opengl coordinate -1 ~ 1
+ * @param {HTMLCanvasElement} canvas 
+ * @param {int} x 
+ * @param {int} y 
+ * @returns {THREE.Vector2}
+ */
 function glcoord(canvas, x, y) {
     var w = parseInt(canvas.style.width.replace("px", ""));
     var h = parseInt(canvas.style.height.replace("px", ""));
@@ -16,6 +23,25 @@ function glcoord(canvas, x, y) {
     x -= rect.left;
     y -= rect.top; // open gl is left-hand coordinate
     return new THREE.Vector2(2*x/w - 1, -2*y/h + 1);
+}
+
+/**
+ * calculate the normal of interact in world coordinate 
+ * @param {THREE.Object3D} interact
+ * @returns {THREE.Vector3} 
+ */
+function face_normal(interact) {
+    return interact.normal.clone().transformDirection(interact.object.matrixWorld);
+}
+
+/**
+ * calculate the normal of interact in world coordinate 
+ * @param {THREE.Onject3D} interact
+ * @returns {THREE.Material} 
+ */
+function face_material(interact) {
+    const material_idx = interact.face.materialIndex;
+    return interact.object.material[material_idx];
 }
 
 /**
@@ -38,9 +64,10 @@ const C3CubeGraphic = function(c3core, canvas) {
     this.apply_c3cube(this.c3core);
 
     // init control
-    this.intersect_c3piece = null;
-    this.raycaster = new THREE.Raycaster();
     this.contorl_orbits = new OrbitControls(this.camera, canvas);
+    this.control_c3piece = {
+        intersect: null, arrow_normal: null, arrow_operate: null
+    }
     this._init_events();
 }
 
@@ -50,44 +77,73 @@ const C3CubeGraphic = function(c3core, canvas) {
  * @returns {THREE.Group}
  */
 C3CubeGraphic.prototype.create_c3obj = function(c3core){
-    const a = c3core.imin;
-    const n = c3core.order;
-    const d = n <= 6 ? 0.94 : 0.9;
     const c3obj = new THREE.Group();
-    const geometry = new THREE.BoxGeometry(d, d, d);
-    const cmap = this.colormap
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const cmap = this.colormap;
     const cmapr = c3core.colormapr;
 
     for(let idx in c3core.pieces) {
         var piece = c3core.pieces[idx];
         var p = piece.p, o = piece.o, c = piece.c;
         var materials = []; // front->R, back->O,  right->Y, left->W, up->B, down->G
-        if(o[0]>0) materials[0] = new THREE.MeshBasicMaterial({color: cmap[cmapr[c[0]]]});
-        else materials[1] = new THREE.MeshBasicMaterial({color: cmap[cmapr[c[0]]]});
-        if(o[1]>0) materials[2] = new THREE.MeshBasicMaterial({color: cmap[cmapr[c[1]]]});
-        else materials[3] = new THREE.MeshBasicMaterial({color: cmap[cmapr[c[1]]]});
-        if(o[2]>0) materials[4] = new THREE.MeshBasicMaterial({color: cmap[cmapr[c[2]]]});
-        else materials[5] = new THREE.MeshBasicMaterial({color: cmap[cmapr[c[2]]]});
+        var colors = [];
+        if(o[0]>0) colors[0] = cmap[cmapr[c[0]]];
+        else colors[1] = cmap[cmapr[c[0]]];
+        if(o[1]>0) colors[2] = cmap[cmapr[c[1]]];
+        else colors[3] = cmap[cmapr[c[1]]];
+        if(o[2]>0) colors[4] = cmap[cmapr[c[2]]];
+        else colors[5] =cmap[cmapr[c[2]]];
         for(let i=0;i<6;i++) {
-            if(!materials[i]) materials[i] = new THREE.MeshBasicMaterial({color: cmap[0]});
+            if(!colors[i]) colors[i] = cmap[0];
+            materials[i] = this.create_c3face_material(new THREE.Color(colors[i]));
         }
 
         var mesh = new THREE.Mesh(geometry, materials);
-        var r = [a==0 ? 0: -0.5*math.sign(p[0]), 
-            a==0 ? 0: -0.5*math.sign(p[1]), 
-            a==0 ? 0: -0.5*math.sign(p[2])];
-        mesh.position.set(p[0]+r[0], p[1]+r[1], p[2]+r[2]);
+        mesh.position.copy(this.coord_c3graphic(p));
         mesh.name = this.NAME_C3PIECE;
         c3obj.add(mesh);
     }
     return c3obj;
 }
 
+/** 
+ * @param {THREE.Color} color_face
+ * @returns {THREE.Material}
+ */
+C3CubeGraphic.prototype.create_c3face_material = function(color_face, size_gap=0.04) {
+    const material = new THREE.ShaderMaterial( {
+        uniforms: {
+            color_face: {value: color_face}, 
+            color_gap: {value: new THREE.Color(this.colormap[0])},
+            size_gap: {value: size_gap}
+        }, 
+        vertexShader: `
+            varying vec2 vuv;
+            void main() {
+                vuv = uv;
+                gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0 );
+            }`,
+        fragmentShader: `
+            uniform vec3 color_face;
+            uniform vec3 color_gap;
+            uniform float size_gap;
+            varying vec2 vuv;
+            void main() {
+                if (vuv.x<=size_gap || vuv.x>=1.f-size_gap || vuv.y<=size_gap || vuv.y>=1.f-size_gap) {
+                    gl_FragColor = vec4(color_gap.xyz, 1.0);
+                } else {
+                    gl_FragColor = vec4(color_face.xyz, 1.0);
+                }
+            }
+        `
+    });
+    return material;
+}
+
 /**
  * apply the c3cube status on the scene
  * @param {C3Cube} c3core 
  */
-
 C3CubeGraphic.prototype.apply_c3cube = function(c3core) {
     // create c3 rendering object
     this.c3obj = this.create_c3obj(c3core);
@@ -99,9 +155,9 @@ C3CubeGraphic.prototype.apply_c3cube = function(c3core) {
     const b = this.c3core.imax;
     var d = n<=5 ? 3*b: 2*b; 
     this.camera.position.set(d, d, d);
-    const axeshelper = new THREE.AxesHelper(10*b);
-    axeshelper.setColors(this.colormap[2], this.colormap[4], this.colormap[6]);
-    this.scene.add(axeshelper);
+    this.axeshelper = new THREE.AxesHelper(10*b);
+    this.axeshelper.setColors(this.colormap[2], this.colormap[4], this.colormap[6]);
+    this.scene.add(this.axeshelper);
 }
 
 C3CubeGraphic.prototype.push_operate = function(axis, l, reverse=false) {
@@ -132,20 +188,15 @@ C3CubeGraphic.prototype.operate = function(axis, l, reverse=false, update_c3core
         return false;
     }
 
-    var a = this.c3core.imin;
     params.targets = [];
     params.axis = axis;
     params.l = l;
     params.reverse = reverse;
     this.c3obj.traverse((obj)=>{
         if(obj.name!=this.NAME_C3PIECE) return;
-        var p = [obj.position.x, obj.position.y, obj.position.z];
-        var r = [a==0 ? 0: -0.5*math.sign(p[0]), 
-            a==0 ? 0: -0.5*math.sign(p[1]), 
-            a==0 ? 0: -0.5*math.sign(p[2])];
-        if(math.equal(parseInt(math.round(p[axis] - r[axis])), l)) {
-            params.targets.push({mesh:obj, 
-                p: obj.position.clone(), q:obj.quaternion.clone()});
+        var p = this.coord_c3core(obj.position)
+        if(math.equal(parseInt(p[axis]), l)) {
+            params.targets.push({mesh:obj, p: obj.position.clone(), q:obj.quaternion.clone()});
         }
     });
     params.clock = new THREE.Clock();
@@ -169,58 +220,153 @@ C3CubeGraphic.prototype.request_frame = function() {
     this.renderer.render(this.scene, this.camera);
 }
 
-C3CubeGraphic.prototype._init_events = function() {
-    const _on_mousedown = (e)=> {
-        if(this.params_animate_operate.clock) return;
-        var coord = glcoord(this.canvas, e.clientX, e.clientY); 
-        this.raycaster.setFromCamera(coord, this.camera);
-        var intersects = this.raycaster.intersectObjects(this.c3obj.children);
-        if(intersects[0]) {
-            this.contorl_orbits.enabled = false;
-            this.intersect_c3piece = intersects[0];
-        }
-        else {
-            this.intersect_c3piece = null;
-        }
-    }
-    const  _on_mouseup = (e) => {
-        this.contorl_orbits.enabled = true;
-        if(this.params_animate_operate.clock) return;
-        if(this.intersect_c3piece) {
-            // use raycaster to find interact meshes
-            var coord = glcoord(this.canvas, e.clientX, e.clientY); 
-            this.raycaster.setFromCamera(coord, this.camera);
-            var intersects = this.raycaster.intersectObjects(this.c3obj.children);
-            if(intersects[0]) {
-                // calculate the axis according to face normal and vector between start and end
-                var axis = -1, reverse = false;
-                var obj1 = this.intersect_c3piece.object;
-                var obj2 = intersects[0].object;
-                var normal = this.intersect_c3piece.normal.clone().transformDirection(obj1.matrixWorld).normalize();
-                var vec = obj2.position.clone().sub(obj1.position);
-                var normal2 = normal.clone().cross(vec).normalize();
-                if(math.abs(normal2.x) > 0.01) {axis = 0; reverse=(normal2.x < 0)}
-                else if(math.abs(normal2.y) > 0.01) {axis = 1; reverse=(normal2.y < 0)}
-                else if(math.abs(normal2.z) > 0.01) {axis = 2; reverse=(normal2.z < 0)}
-                else axis = -1;
+C3CubeGraphic.prototype.c3piece_mousedown = function(intersect) {
+    this.control_c3piece.intersect =null;
+    if(this.params_animate_operate.clock) return;
+    if(!intersect) return;
 
-                // calculate the position to operate
-                var a = this.c3core.imin;
-                if(axis >= 0) {
-                    var p1 = [obj1.position.x,  obj1.position.y, obj1.position.z];
-                    var r1 = [a==0 ? 0: -0.5*math.sign(p1[0]), 
-                    a==0 ? 0: -0.5*math.sign(p1[1]), 
-                    a==0 ? 0: -0.5*math.sign(p1[2])];
-                    p1 = math.subtract(p1, r1);
-                    // console.log("normal:", normal, "vec:", vec, "normal2:", normal2, "p1:", p1, "axis:", axis);
-                    this.push_operate(axis, parseInt(math.round(p1[axis])), reverse);
-                }
-            }
-        }
-        this.intersect_c3piece = null;
+    var arrow_normal = null;
+    const n = this.c3core.order;
+    var color = face_material(intersect).uniforms.color_face.value.clone();
+    arrow_normal = new THREE.ArrowHelper(face_normal(intersect), intersect.point, 2);
+    color.setRGB(1-color.r, 1-color.g, 1-color.b);
+    arrow_normal.setColor(color);
+    arrow_normal.setLength(n/10);
+
+    this.contorl_orbits.enabled = false;
+    this.control_c3piece.intersect = intersect;
+    this.control_c3piece.arrow_normal = arrow_normal;
+    this.scene.add(arrow_normal);
+}
+
+C3CubeGraphic.prototype.c3piece_mousemove = function(intersect) {
+    if(this.params_animate_operate.clock) return;
+    const intersect_pre = this.control_c3piece.intersect;
+    if(!intersect_pre) return;
+    if(!intersect) return;
+    
+    const n = this.c3core.order;
+    var obj1 = intersect_pre.object;
+    var obj2 = intersect.object;
+    var vec = obj2.position.clone().sub(obj1.position);
+    var arrow_operate = this.control_c3piece.arrow_operate;
+    var arrow_normal = this.control_c3piece.arrow_normal;
+    if(arrow_operate) arrow_operate.removeFromParent();
+    console.log(vec, vec.length());
+    if(vec.length() >= 1) {
+        arrow_operate = new THREE.ArrowHelper(vec, intersect_pre.point, 2);
+        arrow_operate.setColor(arrow_normal.line.material.color);
+        arrow_operate.setLength(n/10);
+        console.log(arrow_operate)
+
+        this.control_c3piece.arrow_operate = arrow_operate;
+        this.scene.add(arrow_operate);
     }
-    this.canvas.onmousedown = _on_mousedown;
-    this.canvas.onmouseup = _on_mouseup;
+}
+
+C3CubeGraphic.prototype.c3piece_mouseup = function(intersect) {
+    this.contorl_orbits.enabled = true;
+    const arrow_normal = this.control_c3piece.arrow_normal;
+    const arrow_operate = this.control_c3piece.arrow_operate;
+    if(arrow_normal) arrow_normal.removeFromParent();
+    if(arrow_operate) arrow_operate.removeFromParent();
+    
+    if(this.params_animate_operate.clock) return;
+    const intersect_pre = this.control_c3piece.intersect;
+    if(!intersect_pre) return;
+    if(!intersect) return;
+
+    var axis = -1, reverse = false;
+    var obj1 = intersect_pre.object;
+    var obj2 = intersect.object;
+    var normal = face_normal(intersect_pre);
+    var vec = obj2.position.clone().sub(obj1.position);
+    var normal2 = normal.clone().cross(vec).normalize();
+    if(math.abs(normal2.x) > 0.01) {axis = 0; reverse=(normal2.x < 0)}
+    else if(math.abs(normal2.y) > 0.01) {axis = 1; reverse=(normal2.y < 0)}
+    else if(math.abs(normal2.z) > 0.01) {axis = 2; reverse=(normal2.z < 0)}
+    else axis = -1;
+    if(axis >= 0) {
+        var p1 = this.coord_c3core(obj1.position);
+        console.log(axis, p1, "normal", normal, "vec", vec, "normal2", normal2);
+        this.push_operate(axis, parseInt(math.round(p1[axis])), reverse);
+    }
+
+    this.control_c3piece.intersect = null;
+}
+
+/**
+ * convert the c3cure_core coordinate to c3cube_graphic
+ * @param {int[3]} p 
+ * @returns {THREE.Vector3}
+ */
+C3CubeGraphic.prototype.coord_c3graphic = function(p) {
+    const a = this.c3core.imin;
+    var r = [a==0 ? 0: -0.5*math.sign(p[0]), 
+        a==0 ? 0: -0.5*math.sign(p[1]), 
+        a==0 ? 0: -0.5*math.sign(p[2])];
+    return new THREE.Vector3(p[0]+r[0], p[1]+r[1], p[2]+r[2]);
+}
+
+/**
+ * convert the c3cube_graphic coordinate to c3cure_core
+ * @param {THREE.Vector3} p 
+ * @returns {int[3]}
+ */
+C3CubeGraphic.prototype.coord_c3core = function (p) {
+    const a = this.c3core.imin;
+    var r = [a==0 ? 0: -0.5*math.sign(p.x), 
+        a==0 ? 0: -0.5*math.sign(p.y), 
+        a==0 ? 0: -0.5*math.sign(p.z)];
+    return math.round([p.x-r[0], p.y-r[1], p.z-r[2]]);
+}
+
+C3CubeGraphic.prototype.raycaster_c3obj = function(origin, direction=null) {
+    const raycaster = new THREE.Raycaster();
+    if(direction) raycaster.set(origin, direction);
+    else {
+        var coord = glcoord(this.canvas, origin.x, origin.y); 
+        raycaster.setFromCamera(coord, this.camera);
+    }    
+    return raycaster.intersectObjects(this.c3obj.children);
+} 
+
+C3CubeGraphic.prototype._init_events = function() {
+    // mouse event
+    this.canvas.onmousedown = (e)=> {
+        var intersects = this.raycaster_c3obj(new THREE.Vector2(e.clientX, e.clientY));
+        this.c3piece_mousedown(intersects[0]);
+    };
+
+    this.canvas.onmousemove = (e) => {
+        var intersects = this.raycaster_c3obj(new THREE.Vector2(e.clientX, e.clientY));
+        this.c3piece_mousemove(intersects[0]);
+    };
+
+    this.canvas.onmouseup = (e) => {
+        var intersects = this.raycaster_c3obj(new THREE.Vector2(e.clientX, e.clientY));
+        this.c3piece_mouseup(intersects[0]);
+    };
+
+    // touch event
+    var last_touch_coords;
+    this.canvas.ontouchstart = (e) => {
+        if(e.touches.length > 1) return;
+        var intersects = this.raycaster_c3obj(new THREE.Vector2(e.touches[0].clientX, e.touches[0].clientY));
+        this.c3piece_mousedown(intersects[0]);
+    }
+
+    this.canvas.ontouchmove = (e) => {
+        if(e.touches.length > 1) return;
+        last_touch_coords = new THREE.Vector2(e.touches[0].clientX, e.touches[0].clientY);
+        var intersects = this.raycaster_c3obj(last_touch_coords);
+        this.c3piece_mousemove(intersects[0]);
+    }
+
+    this.canvas.ontouchend = (e) => {
+        var intersects = this.raycaster_c3obj(last_touch_coords);
+        this.c3piece_mouseup(intersects[0]);
+    }
 } 
 
 C3CubeGraphic.prototype._animate_operate = function() {
@@ -260,4 +406,6 @@ export {C3CubeGraphic}
  * history: 
  *   v0.1, initial version with cube rendering
  *   v0.2, add controls by mouse to operate on cube
+ *   v0.2.1, optimize the user interface
+ *   v0.2.2, add shader for c3piece, touch support
  */
