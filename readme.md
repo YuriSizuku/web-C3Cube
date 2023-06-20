@@ -1,6 +1,6 @@
 # C3Cube
 
-☘️ This is a **webgl/nodejs** experiment project for n order Rubik's Cube. We try to use this for understanding how cube status changes. Also it is compatible with the mobile phone to play.  
+☘️ This is a **webgl/nodejs** experiment project for n order Rubik's Cube. We try to use this for understanding how cube status changes. You can **dump/load** operates or status to record for future use. Also it is compatible with the mobile phone to play.  
 
 - `c3cube_core.js`, the status encoding and operate for cube
 - `c3cube_solve.js`, algorithms to sovle cube problem (todo)

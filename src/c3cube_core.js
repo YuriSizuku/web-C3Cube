@@ -114,8 +114,40 @@ C3Cube.prototype.pop_operate = function(reserve=false) {
 C3Cube.prototype.operate = function(axis, l) {
     var pieces = this.pieces;
     for(let idx in pieces) {
+        if(!pieces[idx]) continue;
         var p = pieces[idx].p;
         if(math.equal(p[axis], l)) pieces[idx].operate(axis, l);
+    }
+}
+
+/**
+ * dump current c3cube to json
+ * @retunrs {string}
+ */
+C3Cube.prototype.dump = function() {
+    return JSON.stringify(this);
+}
+
+/**
+ *  load json_str to rebuild c3cube
+ * @param {string} json_str 
+ */
+C3Cube.prototype.load = function(json_str) {
+    const c3cube_json = JSON.parse(json_str);
+    const n = c3cube_json.order;
+    this.order = n;
+    this.imin = (n+1)%2;
+    this.imax = math.floor(n/2);
+    this.npiece = n*n*n - (n-2)*(n-2)*(n-2);
+    this.ncorner = 8;
+    this.nedge = 12*(n-2);
+    this.ninner = 6*(n-2)*(n-2);
+    this.operate_stack = c3cube_json.operate_stack;
+    this.pieces = [];
+    for(let idx in c3cube_json.pieces) {
+        var piece =  c3cube_json.pieces[idx];
+        if(!piece) continue;
+        this.pieces[idx] = new C3CubePiece(piece.p, piece.o, piece.c, piece.p0);
     }
 }
 
@@ -230,6 +262,7 @@ const C3CubeUtil = function() {}
  * @returns {Array.<int[2]>} operates
  */
 C3CubeUtil.prototype.load_operates = function(operates_str)  {
+    if(!operates_str || operates_str.length==0) return [];
     var operates = [];
     var axis=0, l=1, times = 0;
     var mode_axis=true, mode_fluse=false, mode_reverse=false;
@@ -284,6 +317,7 @@ C3CubeUtil.prototype.load_operates = function(operates_str)  {
  * @returns {string} operate_str
  */
 C3CubeUtil.prototype.dump_operates = function(operates) {
+    if(!operates || operates.length==0) return "";
     var times = 1;
     var axis_map = {0: 'X', 1: 'Y', 2: 'Z'};
     var last_operate;
@@ -596,4 +630,5 @@ export {C3Cube, C3CubePiece, C3CubeUtil}
  * history: 
  *   v0.1, initial version with cube status and operate
  *   v0.2, cube operate stack, util functions for coordinate, operate encode
+ *   v0.2.1, add dump/load function for c3cube
  */

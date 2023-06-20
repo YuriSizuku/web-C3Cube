@@ -7,7 +7,7 @@
 
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { C3Cube, C3CubeUtil } from "./c3cube_core.js";
+import { C3Cube } from "./c3cube_core.js";
 
 /**
  * transfor the coordinate of screen to opengl coordinate -1 ~ 1
@@ -84,6 +84,7 @@ C3CubeGraphic.prototype.create_c3obj = function(c3core){
 
     for(let idx in c3core.pieces) {
         var piece = c3core.pieces[idx];
+        if(!piece) continue;
         var p = piece.p, o = piece.o, c = piece.c;
         var materials = []; // front->R, back->O,  right->Y, left->W, up->B, down->G
         var colors = [];
@@ -151,6 +152,7 @@ C3CubeGraphic.prototype.create_c3face_material = function(color_face, size_gap=0
  */
 C3CubeGraphic.prototype.apply_c3cube = function(c3core) {
     // create c3 rendering object
+    this.c3core = c3core;
     this.c3obj = this.create_c3obj(c3core);
     this.scene = new THREE.Scene();
     this.scene.add(this.c3obj);

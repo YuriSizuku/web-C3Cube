@@ -7,6 +7,7 @@
             {
                 "three": "https://unpkg.com/three@0.153.0/build/three.module.js",
                 "three/examples/jsm/": "https://unpkg.com/three@0.153.0/examples/jsm/",
+                "lil-gui": "https://unpkg.com/lil-gui@0.18.2/dist/lil-gui.esm.min.js",
                 "c3cube": "./c3cube_core.js",
                 "c3cubeg": "./c3cube_graphic.js"
             }
@@ -15,17 +16,19 @@
 
     <script type="module">
         import * as THREE from 'three' 
+        import Stats from 'three/examples/jsm/libs/stats.module.js'
+        import GUI from 'lil-gui'; 
         import {C3Cube, C3CubeUtil} from 'c3cube';
         import {C3CubeGraphic} from 'c3cubeg';
-        import Stats from 'three/examples/jsm/libs/stats.module.js'
         window.THREE = THREE;
-        window.stats = new Stats();
+        window.Stats = Stats;
+        window.GUI = GUI; 
         window.C3Cube = C3Cube;
         window.C3CubeUtil = C3CubeUtil;
         window.C3CubeGraphic = C3CubeGraphic;
-        document.body.appendChild(stats.dom);
     </script>
 
+    <meta name="version" content="v0.2"/>
     <title>C3Cube</title>
 </head>
 
@@ -54,6 +57,15 @@
             }
             return {w: docobj.style.width, h: docobj.style.height}
         }
+
+        function download(filename, blob){
+            var a = document.createElement("a"); 
+            a.innerHTML = filename;
+            a.download = filename; //下载内容
+            a.href = URL.createObjectURL(blob);
+            a.click();
+        }
+
     </script>
 
     <script type="text/javascript">
@@ -61,39 +73,152 @@
         var g_lastpressdown; // for longpress
         var g_lastframetick = 0;
 
-        function onframe(tick) {
-            requestAnimationFrame(onframe);
+        function mainloop(tick) {
+            requestAnimationFrame(mainloop);
             stats.update();
             c3cubeg.request_frame();
             g_lastframetick = tick;
         }
 
         function toggle_webinfo() {
+            var webinfo = document.getElementById("webinfo");
+            if(webinfo.style.display=="none") webinfo.style.display="block";
+            else if(webinfo.style.display=="block") webinfo.style.display="none";
+            else webinfo.style.display="block";
+        }
 
+        function toggle_screenfull() {
+            var body = document.getElementsByTagName('body')[0];
+            if(window.innerHeight != screen.height) {
+                body.requestFullscreen({ navigationUI: "show" })
+                .then(()=>{ // can not use canvas.requestFullscreen
+                    console.log("## after requestFullscreen");
+                });
+            }
+            else {
+                document.exitFullscreen();
+            }
         }
 
         function toggle_webmenu() {
 
         }
 
+        window.onload = (event) => {
+            // init meta info
+            const canvas = document.getElementById('canvas');
+            const version = document.querySelector("meta[name='version']").attributes.content.value;
+            const title = document.title;
+            const default_order = 6;
+            
+            // init c3cube
+            window.c3cube = new C3Cube(default_order);
+            window.c3cubeg = new C3CubeGraphic(c3cube, canvas);
+            
+            // init gui
+            window.stats = new Stats();
+            document.body.appendChild(stats.dom);
+            window.gui = new GUI({title: `${title} ${version}`});
+            
+            // c3cube config
+            const gui_folder_config = gui.addFolder("c3cube config").close();
+            const gui_obj_config = {
+                cube_order: default_order, 
+                operate_interval: c3cubeg.params_animate_operate.interval,
+                apply_changes: function() {
+                    c3cube = new C3Cube(this.cube_order);
+                    c3cubeg = new C3CubeGraphic(c3cube, canvas);
+                    c3cubeg.params_animate_operate.interval = this.operate_interval;
+                }
+            }
+            gui_folder_config.add(gui_obj_config, "cube_order", 3, 20, 1);
+            gui_folder_config.add(gui_obj_config, "operate_interval", 0, 2000, 100);
+            gui_folder_config.add(gui_obj_config, "apply_changes");
+            gui_folder_config.add({help: toggle_webinfo}, "help");
+            
+            // c3cube operate
+            const gui_folder_operate = gui.addFolder("c3cube operate").close();
+            const gui_obj_operate = {
+                pop_operate: ()=>{
+                    if(c3cube.operate_stack.length<=0) alert("c3cube.operate_stack is emplty!")
+                    else c3cubeg.pop_operate();
+                },
+                reset_scene: ()=>{
+                    c3cubeg.apply_c3cube(c3cubeg.c3core);
+                },
+                fullscreen: toggle_screenfull
+            }   
+            gui_folder_operate.add(gui_obj_operate, "pop_operate");
+            gui_folder_operate.add(gui_obj_operate, "reset_scene");
+            gui_folder_operate.add(gui_obj_operate, "fullscreen");
+
+            // c3cube serialization
+            const gui_folder_tool = gui.addFolder("c3cube tool").close();
+            const gui_obj_tool = {
+                save_operates: ()=> {
+                    var operates_str = (new C3CubeUtil()).dump_operates(c3cubeg.c3core.operate_stack);
+                    console.log("save_operates:", operates_str);
+                    download(`c3cube${c3cubeg.c3core.order}_operates.txt`, new Blob([operates_str]));
+                },
+                load_operates: ()=> {
+                    var input = document.createElement("input");
+                    input.type = "file";
+                    input.onchange = (e) => {
+                        var reader = new FileReader();
+                        reader.readAsText(e.target.files[0])
+                        reader.onload = (e2) => {
+                            const operates_str = e2.target.result;
+                            console.log("load_operates: ", operates_str);
+                            const operates = (new C3CubeUtil()).load_operates(operates_str);
+                            c3cube = new C3Cube(gui_obj_config.cube_order);
+                            for(idx in operates) {
+                                const operate = operates[idx];
+                                c3cube.push_operate(operate[0], operate[1]);
+                            }
+                            c3cubeg.apply_c3cube(c3cube);
+                        }
+                    }
+                    input.click();
+                },
+                save_status: ()=> {
+                    console.log("save_status:", c3cube);
+                    download(`c3cube${c3cubeg.c3core.order}_status.txt`, new Blob([c3cubeg.c3core.dump()]));
+                },
+                load_status: ()=> {
+                    var input = document.createElement("input");
+                    input.type = "file";
+                    input.onchange = (e) => {
+                        var reader = new FileReader();
+                        reader.readAsText(e.target.files[0])
+                        reader.onload = (e2) => {
+                            const c3cube_str = e2.target.result;
+                            c3cubeg.c3core.load(c3cube_str);
+                            console.log("load_status: ", c3cubeg.c3core);
+                            gui_folder_config.c3cube_order = c3cubeg.c3core.order;
+                            c3cubeg.apply_c3cube(c3cubeg.c3core);
+                        }
+                    }
+                    input.click();
+                }
+            }
+            gui_folder_tool.add(gui_obj_tool, "save_operates");
+            gui_folder_tool.add(gui_obj_tool, "load_operates");
+            gui_folder_tool.add(gui_obj_tool, "save_status");
+            gui_folder_tool.add(gui_obj_tool, "load_status");
+        
+            scale_full2(canvas, 4/3);
+            mainloop();
+        };
+
         window.onresize = (event) => {
             const canvas = document.getElementById('canvas');
             scale_full2(canvas, 4/3);
         };
 
-        window.onload = (event) => {
-            const canvas = document.getElementById('canvas');
-            const c3cube = new C3Cube(20)
-            const c3cubeg = new C3CubeGraphic(c3cube, canvas);
-            window.c3cubeg = c3cubeg;
-            window.c3cube = c3cube;
-            scale_full2(canvas, 4/3);
-            onframe();
-        };
-
         window.onkeydown = (event) => {
             switch(event.key) {
                 case "F2":
+                    console.log("222")
                     toggle_webinfo();
                     break;
                 case "F9":
@@ -101,34 +226,39 @@
                     break;
             }
         };
-
-        window.onmousedown = (event) => {
-            if(event.button==0){
-                g_lastpressdown = event.timeStamp;
-            }
-        };
-
-        window.onmouseup = (event) => {
-            if(event.button==0){
-                if(event.timeStamp - g_lastpressdown > LONG_CLICK_TIME) {
-                    var webrmenu = document.getElementById("webrmenu");
-                    if(webrmenu && webrmenu.style.display=="none") toggle_webmenu();
-                    g_lastpressdown = event.timeStamp;
-                }
-            }
-        };
-
-        window.ontouchstart = (event) => {
-            g_lastpressdown = event.timeStamp;
-        };
-
-        window.ontouchend = (event) => {
-            if(event.timeStamp - g_lastpressdown > LONG_CLICK_TIME) {
-                var webrmenu = document.getElementById("webrmenu");
-                if(webrmenu && webrmenu.style.display=="none") toggle_webmenu();
-                g_lastpressdown = event.timeStamp;
-            }
-        };
-
     </script>
+
+    <style>
+    #webinfo {
+        position: fixed; 
+        display: none;
+        border-radius: 10px;
+        top: 17%;
+        left: 0;
+        right: 0; 
+        margin-left:auto;
+        margin-right: auto; 
+        min-width: 400px;
+        max-width: 700px;
+        text-align: left;
+        color: snow;    
+        background: #6495e866;
+    }
+
+    #webinfo p {
+        margin-left: 10%; 
+        margin-right: 10%;
+    }
+    </style>
+
+    <div id="webinfo">
+        <p> This is a webgl/nodejs experiment project for n order Rubik's Cube </p>
+        <p> See <a href="https://github.com/YuriSizuku/web-C3Cube" target="_blank"> web-C3Cube </a>in details, 
+            (press F2, or help to close this window)</p>
+        <hr>
+        <p>[left button|one figer] point on backgroud to rotate scene </p>
+        <p>[wheel|two figers] to zoom in/out</p>
+        <p>[right button|two figers] point on backgroud to translate camera</p>
+        <p>[left button|one figer] point on cube piece to operate</p>
+    </div>
 </body>

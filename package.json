@@ -1,6 +1,7 @@
 {
-  "type":"module",
+  "type": "module",
   "dependencies": {
+    "lil-gui": "^0.18.2",
     "mathjs": "^11.8.0",
     "three": "^0.153.0"
   }
