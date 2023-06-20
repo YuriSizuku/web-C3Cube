@@ -1,0 +1,23 @@
+name: build android
+on:
+  push:
+  pull_request: 
+
+jobs:
+  test_c3cube:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+   
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '18.16.0'
+
+    - name: install dependencies
+      run: npm i
+
+    - name: run c3cube_test
+      run: |
+        cd src 
+        chmod +x *.js
+        node ./c3cube_test.js
