@@ -110,11 +110,11 @@ C3CubeGraphic.prototype.create_c3obj = function(c3core){
  * @param {THREE.Color} color_face
  * @returns {THREE.Material}
  */
-C3CubeGraphic.prototype.create_c3face_material = function(color_face, size_gap=0.04) {
+C3CubeGraphic.prototype.create_c3face_material = function(color_face, size_gap=0.04, color_gap=new THREE.Color("#000000")) {
     const material = new THREE.ShaderMaterial( {
         uniforms: {
             color_face: {value: color_face}, 
-            color_gap: {value: new THREE.Color(this.colormap[0])},
+            color_gap: {value: color_gap},
             size_gap: {value: size_gap}
         }, 
         vertexShader: `
@@ -129,11 +129,16 @@ C3CubeGraphic.prototype.create_c3face_material = function(color_face, size_gap=0
             uniform float size_gap;
             varying vec2 vuv;
             void main() {
-                if (vuv.x<=size_gap || vuv.x>=1.f-size_gap || vuv.y<=size_gap || vuv.y>=1.f-size_gap) {
-                    gl_FragColor = vec4(color_gap.xyz, 1.0);
-                } else {
-                    gl_FragColor = vec4(color_face.xyz, 1.0);
+                float r = 1.f;
+                float th = size_gap/2.f;
+                if (vuv.x<size_gap || vuv.x>1.f-size_gap || vuv.y<size_gap || vuv.y>1.f-size_gap) {
+                    float rx1 = smoothstep(size_gap - th, size_gap, vuv.x);
+                    float rx2 = 1.f - smoothstep(1.f - size_gap, 1.f - size_gap + th, vuv.x);
+                    float ry1 = smoothstep(size_gap - th, size_gap, vuv.y);
+                    float ry2 = 1.f - smoothstep(1.f - size_gap, 1.f - size_gap + th, vuv.y);
+                    r = (rx1 + rx2 + ry1 + ry2)/4.f;
                 }
+                gl_FragColor = vec4(mix(color_gap, color_face, r), 1.0);
             }
         `
     });
