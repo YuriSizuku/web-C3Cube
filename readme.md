@@ -7,6 +7,23 @@
 - `c3cube_graphic.js`, rendering the cube by `three.js`
 
 ![c3cube](screenshot/c3cube_example1.png)
+
+## Usage
+
+### mouse mode  
+
+- left button point on backgroud to rotate scene
+- wheel to zoom in/out
+- right button point on backgroud to translate camera
+- left button point on cube piece and then mouse to another piece, release mouse to operate cube
+
+### touch mode  
+
+- one figer point on backgroud to rotate scene
+- two figers point on backgroud to zoom in/out
+- two figers point on backgroud to translate scene
+- one figer point on cube piece and then mouse to another piece, release mouse to operate cube
+
 ![c3cube](screenshot/c3cube.png)
 
 ## Rubik's Cube Math Theory

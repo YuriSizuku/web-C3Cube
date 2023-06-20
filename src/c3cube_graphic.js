@@ -225,10 +225,11 @@ C3CubeGraphic.prototype.c3piece_mousedown = function(intersect) {
     if(this.params_animate_operate.clock) return;
     if(!intersect) return;
 
-    var arrow_normal = null;
+    var arrow_normal = this.control_c3piece.arrow_normal;
+    if(arrow_normal) arrow_normal.removeFromParent();
     const n = this.c3core.order;
     var color = face_material(intersect).uniforms.color_face.value.clone();
-    arrow_normal = new THREE.ArrowHelper(face_normal(intersect), intersect.point, 2);
+    arrow_normal = new THREE.ArrowHelper(face_normal(intersect), intersect.point);
     color.setRGB(1-color.r, 1-color.g, 1-color.b);
     arrow_normal.setColor(color);
     arrow_normal.setLength(n/10);
@@ -252,13 +253,10 @@ C3CubeGraphic.prototype.c3piece_mousemove = function(intersect) {
     var arrow_operate = this.control_c3piece.arrow_operate;
     var arrow_normal = this.control_c3piece.arrow_normal;
     if(arrow_operate) arrow_operate.removeFromParent();
-    console.log(vec, vec.length());
     if(vec.length() >= 1) {
-        arrow_operate = new THREE.ArrowHelper(vec, intersect_pre.point, 2);
+        arrow_operate = new THREE.ArrowHelper(vec.normalize(), intersect_pre.point);
         arrow_operate.setColor(arrow_normal.line.material.color);
         arrow_operate.setLength(n/10);
-        console.log(arrow_operate)
-
         this.control_c3piece.arrow_operate = arrow_operate;
         this.scene.add(arrow_operate);
     }
@@ -282,13 +280,20 @@ C3CubeGraphic.prototype.c3piece_mouseup = function(intersect) {
     var normal = face_normal(intersect_pre);
     var vec = obj2.position.clone().sub(obj1.position);
     var normal2 = normal.clone().cross(vec).normalize();
-    if(math.abs(normal2.x) > 0.01) {axis = 0; reverse=(normal2.x < 0)}
-    else if(math.abs(normal2.y) > 0.01) {axis = 1; reverse=(normal2.y < 0)}
-    else if(math.abs(normal2.z) > 0.01) {axis = 2; reverse=(normal2.z < 0)}
-    else axis = -1;
+    var normal2_arr = [normal2.x, normal2.y, normal2.z]
+    var normal2_max = 0.01;
+    axis = -1;
+    for(let i=0; i < normal2_arr.length; i++) {
+        let cur = math.abs(normal2_arr[i]);
+        if(cur > normal2_max) {
+            normal2_max = cur; 
+            axis = i;
+        }
+    }
     if(axis >= 0) {
+        reverse = (normal2_arr[axis] < 0);
         var p1 = this.coord_c3core(obj1.position);
-        console.log(axis, p1, "normal", normal, "vec", vec, "normal2", normal2);
+        // console.log(axis, p1, "normal", normal, "vec", vec, "normal2", normal2);
         this.push_operate(axis, parseInt(math.round(p1[axis])), reverse);
     }
 
