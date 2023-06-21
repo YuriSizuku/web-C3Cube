@@ -7,7 +7,7 @@
 - `c3cube_graphic.js`, rendering the cube by `three.js`
 
 Online Demo: [C3Cube](https://yuriapp.netlify.app/c3cube/)
-![c3cube](screenshot/c3cube_example1.png)
+![c3cube_example](screenshot/c3cube_example2.jpg)
 
 We try to use this for understanding how cube status changes. You can **dump/load** operates or status to record for future use. Also it is compatible with the mobile phone to play.  
 

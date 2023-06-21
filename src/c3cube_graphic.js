@@ -45,21 +45,24 @@ function face_material(interact) {
 }
 
 /**
- * @param {C3Cube} c3core
+ * @param {C3Cube} c3cube
  * @param {HTMLCanvasElement} canvas 
  */
-const C3CubeGraphic = function(c3core, canvas) {
+const C3CubeGraphic = function(c3cube, canvas) {
     // init render
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true, alpha: true});
     this.camera =  new THREE.PerspectiveCamera(60, canvas.width / canvas.height, 0.1, 1000 );
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
     this.camera.up.set(0, 0, 1); // z axis up
-    this.params_animate_operate = {interval: 300, 
-        clock: null, targets: [], reverse: false, axis: 0, l: 0};
+    this.params_operate = { 
+        interval: 300, clock: null, 
+        targets: [], reverse: false, axis: 0, l: 0,
+        flag_update: true
+    };
 
     // init cube model
-    this.c3core = c3core;
+    this.c3core = c3cube;
     this.c3obj = null;
     this.apply_c3cube(this.c3core);
 
@@ -80,32 +83,32 @@ C3CubeGraphic.prototype.dispose = function() {
             obj.geometry.dispose();
         }
     }
-    if(this.params_animate_operate) {
-        if(this.params_animate_operate.arrow_normal) {
-            this.params_animate_operate.arrow_normal.dispose();
-            this.params_animate_operate.arrow_normal.removeFromParent();
+    if(this.params_operate) {
+        if(this.params_operate.arrow_normal) {
+            this.params_operate.arrow_normal.dispose();
+            this.params_operate.arrow_normal.removeFromParent();
         }
-        if(this.params_animate_operate.arrow_operate) {
-            this.params_animate_operate.arrow_operate.dispose();
-            this.params_animate_operate.arrow_operate.removeFromParent();
+        if(this.params_operate.arrow_operate) {
+            this.params_operate.arrow_operate.dispose();
+            this.params_operate.arrow_operate.removeFromParent();
         }
     }
 }
 
 /**
  * make c3cube rendering project according to the c3cube status
- * @param {C3Cube} c3core 
+ * @param {C3Cube} c3cube 
  * @returns {THREE.Group}
  */
-C3CubeGraphic.prototype.create_c3obj = function(c3core){
+C3CubeGraphic.prototype.create_c3obj = function(c3cube){
     const c3obj = new THREE.Group();
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const cmap = this.colormap;
-    const cmapr = c3core.colormapr;
-    const size_gap = c3core.order <10 ? 0.024: 0.04 
+    const cmapr = c3cube.colormapr;
+    const size_gap = c3cube.order <10 ? 0.024: 0.04 
 
-    for(let idx in c3core.pieces) {
-        var piece = c3core.pieces[idx];
+    for(let idx in c3cube.pieces) {
+        var piece = c3cube.pieces[idx];
         if(!piece) continue;
         var p = piece.p, o = piece.o, c = piece.c;
         var materials = []; // front->R, back->O,  right->Y, left->W, up->B, down->G
@@ -171,17 +174,18 @@ C3CubeGraphic.prototype.create_c3face_material = function(color_face,
 
 /**
  * apply the c3cube status on the scene
- * @param {C3Cube} c3core 
+ * @param {C3Cube} c3cube 
  */
-C3CubeGraphic.prototype.apply_c3cube = function(c3core) {
+C3CubeGraphic.prototype.apply_c3cube = function(c3cube) {
     // remove c3obj first
     this.dispose();
 
      // create c3 rendering object
-    this.c3core = c3core;
-    this.c3obj = this.create_c3obj(c3core);
+    this.c3core = c3cube;
+    this.c3obj = this.create_c3obj(c3cube);
     this.scene = new THREE.Scene();
     this.scene.add(this.c3obj);
+    this.params_operate.flag_update = true;
     
     // adjust length
     const n = this.c3core.order;
@@ -191,6 +195,107 @@ C3CubeGraphic.prototype.apply_c3cube = function(c3core) {
     this.axeshelper = new THREE.AxesHelper(10*b);
     this.axeshelper.setColors(this.colormap[2], this.colormap[4], this.colormap[6]);
     this.scene.add(this.axeshelper);
+}
+
+/**
+ * flatten a cube to a canva
+ * @param {C3Cube} c3cube
+ * @returns {HTMLCanvasElement}
+ */
+C3CubeGraphic.prototype.flatten_c3cube = function(options) {
+    var w = 800, h = 600;
+    var side_len = 0;
+    const color_bk = "#9BFFFC"
+    const color_side = this.colormap[0];
+    const line_ratio = 0.1;
+    const c3cube = this.c3core;
+    const n = c3cube.order;
+    const b = c3cube.imax;
+    var x, y, dx, dy;
+    
+    if(options.side_len) side_len = options.side_len;
+    if(side_len==0) side_len = h/(3*n);
+    else {w = side_len*4*n; h = side_len*3*n;}
+    const img_canvas = options.img_canvas ? options.img_canvas : document.createElement("canvas");
+    img_canvas.width = w; img_canvas.height = h;
+    var ctx = img_canvas.getContext('2d');
+    ctx.strokeStyle = color_side;
+    ctx.lineWidth = line_ratio * side_len;
+    ctx.fillStyle = color_bk;
+    ctx.fillRect(0, 0, w, h);
+
+    for(let idx in c3cube.pieces) {
+        const piece = c3cube.pieces[idx];
+        if(!piece) continue;
+        
+        // draw back
+        if(piece.p[0]==-b) {
+            x = side_len*(3*n + (n-1)/2); y = h/2 - side_len/2;
+            const c = this.colormap[c3cube.colormapr[piece.c[0]]];
+            const p = this.coord_c3graphic(piece.p);
+            dx = p.y*side_len; dy = p.z*side_len
+            ctx.fillStyle = c;
+            ctx.strokeRect(x + dx, y - dy, side_len, side_len);
+            ctx.fillRect(x + dx, y - dy, side_len, side_len);
+        }
+
+        // draw front
+        if(piece.p[0]==b) {
+            x = side_len*(1*n + (n-1)/2); y = h/2 - side_len/2;
+            const c = this.colormap[c3cube.colormapr[piece.c[0]]];
+            const p = this.coord_c3graphic(piece.p);
+            dx = p.y*side_len; dy = p.z*side_len
+            ctx.fillStyle = c;
+            ctx.strokeRect(x + dx, y - dy, side_len, side_len);
+            ctx.fillRect(x + dx, y - dy, side_len, side_len);
+        }
+
+        // draw left
+        if(piece.p[1]==-b) {
+            x = side_len*(0*n + (n-1)/2); y = h/2 - side_len/2;
+            const c = this.colormap[c3cube.colormapr[piece.c[1]]];
+            const p = this.coord_c3graphic(piece.p);
+            dx = p.x*side_len; dy = p.z*side_len
+            ctx.fillStyle = c;
+            ctx.strokeRect(x + dx, y - dy, side_len, side_len);
+            ctx.fillRect(x + dx, y - dy, side_len, side_len);
+        }
+
+        // draw right 
+        if(piece.p[1]==b) {
+            x = side_len*(2*n + (n-1)/2); y = h/2 - side_len/2;
+            const c = this.colormap[c3cube.colormapr[piece.c[1]]];
+            const p = this.coord_c3graphic(piece.p);
+            dx = p.x*side_len; dy = p.z*side_len
+            ctx.fillStyle = c;
+            ctx.strokeRect(x + dx, y - dy, side_len, side_len);
+            ctx.fillRect(x + dx, y - dy, side_len, side_len);
+        }
+
+        // draw down 
+        if(piece.p[2]==-b) {
+            x = side_len*(1*n + (n-1)/2); y = side_len*(n-1)/2;
+            const c = this.colormap[c3cube.colormapr[piece.c[2]]];
+            const p = this.coord_c3graphic(piece.p);
+            dx = p.x*side_len; dy = p.y*side_len
+            ctx.fillStyle = c;
+            ctx.strokeRect(x + dx, y - dy, side_len, side_len);
+            ctx.fillRect(x + dx, y - dy, side_len, side_len);
+        }
+
+        // draw up 
+        if(piece.p[2]==b) {
+            x = side_len*(1*n + (n-1)/2); y = h - side_len*(n+1)/2;
+            const c = this.colormap[c3cube.colormapr[piece.c[2]]];
+            const p = this.coord_c3graphic(piece.p);
+            dx = p.x*side_len; dy = p.y*side_len
+            ctx.fillStyle = c;
+            ctx.strokeRect(x + dx, y - dy, side_len, side_len);
+            ctx.fillRect(x + dx, y - dy, side_len, side_len);
+        }
+    }
+    
+    return img_canvas; 
 }
 
 C3CubeGraphic.prototype.push_operate = function(axis, l, reverse=false) {
@@ -236,7 +341,7 @@ C3CubeGraphic.prototype.pop_operate = function() {
  * @returns 
  */
 C3CubeGraphic.prototype.operate = function(axis, l, reverse=false, update_c3core=true) {
-    var params = this.params_animate_operate;
+    var params = this.params_operate;
     if(params.clock) {
         console.log("can't operate while last operate animate not finished!");
         return false;
@@ -265,7 +370,7 @@ C3CubeGraphic.prototype.operate = function(axis, l, reverse=false, update_c3core
 }
 
 C3CubeGraphic.prototype.request_frame = function() {
-    if(this.params_animate_operate.clock) {
+    if(this.params_operate.clock) {
         this._animate_operate();
     }
     else {
@@ -276,7 +381,7 @@ C3CubeGraphic.prototype.request_frame = function() {
 
 C3CubeGraphic.prototype.c3piece_mousedown = function(intersect) {
     this.control_c3piece.intersect =null;
-    if(this.params_animate_operate.clock) return;
+    if(this.params_operate.clock) return;
     if(!intersect) return;
 
     var arrow_normal = this.control_c3piece.arrow_normal;
@@ -295,7 +400,7 @@ C3CubeGraphic.prototype.c3piece_mousedown = function(intersect) {
 }
 
 C3CubeGraphic.prototype.c3piece_mousemove = function(intersect) {
-    if(this.params_animate_operate.clock) return;
+    if(this.params_operate.clock) return;
     const intersect_pre = this.control_c3piece.intersect;
     if(!intersect_pre) return;
     if(!intersect) return;
@@ -332,7 +437,7 @@ C3CubeGraphic.prototype.c3piece_mouseup = function(intersect) {
         arrow_operate.removeFromParent();
     }
     
-    if(this.params_animate_operate.clock) return;
+    if(this.params_operate.clock) return;
     const intersect_pre = this.control_c3piece.intersect;
     if(!intersect_pre) return;
     if(!intersect) return;
@@ -438,10 +543,13 @@ C3CubeGraphic.prototype._init_events = function() {
 } 
 
 C3CubeGraphic.prototype._animate_operate = function() {
-    var params = this.params_animate_operate;
+    var params = this.params_operate;
     var interval = params.clock.getElapsedTime ()*1000;
     var theta = math.pi/2 * (params.reverse ? -1: 1);
-    if(interval >= params.interval) params.clock = null;
+    if(interval >= params.interval) {
+        params.clock = null;
+        params.flag_update = true;
+    }
     else theta *= interval/params.interval;
     
     var M = new THREE.Matrix4();
@@ -477,4 +585,5 @@ export {C3CubeGraphic}
  *   v0.2.1, optimize the user interface
  *   v0.2.2, add shader for c3piece, touch support
  *   v0.2.3, fix memory link of three by dispose
+ *   v0.2.4, add flatten_c3cube function
  */

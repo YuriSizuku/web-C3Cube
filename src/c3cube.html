@@ -33,10 +33,6 @@
 </head>
 
 <body style="margin: 0 auto;">
-    <div style="display: flex; flex-direction: column;">
-        <canvas id="canvas" width="1280px" height="960px" style=" margin: 0 auto; background:pink"></canvas>
-    </div>
-
     <script type="text/javascript">
         function scale_full2(docobj, ratio=0) {
             var w = window.innerWidth;
@@ -77,14 +73,21 @@
             requestAnimationFrame(mainloop);
             stats.update();
             c3cubeg.request_frame();
+            const info_c3cubeflatten = document.getElementById("info_c3cubeflatten");
+            const params_operate = c3cubeg.params_operate;
+            if(info_c3cubeflatten.style.display != "none" && c3cubeg && params_operate.flag_update) {
+                const img_canvas = info_c3cubeflatten.querySelector("canvas");
+                c3cubeg.flatten_c3cube({img_canvas: img_canvas});
+                params_operate.flag_update = false;
+            }
             g_lastframetick = tick;
         }
 
-        function toggle_webinfo() {
-            var webinfo = document.getElementById("webinfo");
-            if(webinfo.style.display=="none") webinfo.style.display="block";
-            else if(webinfo.style.display=="block") webinfo.style.display="none";
-            else webinfo.style.display="block";
+        function toggle_element(ele_id) {
+            var ele = document.getElementById(ele_id);
+            if(ele.style.display=="none") ele.style.display="block";
+            else if(ele.style.display=="block") ele.style.display="none";
+            else ele.style.display="block";
         }
 
         function toggle_screenfull() {
@@ -100,45 +103,54 @@
             }
         }
 
-        function toggle_webmenu() {
-
+        function resize_elements() {
+            const canvas = document.getElementById('canvas');
+            const info_c3cubeflatten = document.getElementById('info_c3cubeflatten');
+            scale_full2(canvas, 4/3);
+            var w = canvas.style.width.replace("px", "");
+            info_c3cubeflatten.style.width = parseInt(w/4) + "px";
         }
 
         window.onload = (event) => {
-            // init meta info
+            // init elements
             const canvas = document.getElementById('canvas');
             const version = document.querySelector("meta[name='version']").attributes.content.value;
             const title = document.title;
-            const default_order = 6;
+            resize_elements();
             
             // init c3cube
+            const default_order = 6;
             window.c3cube = new C3Cube(default_order);
             window.c3cubeg = new C3CubeGraphic(c3cube, canvas);
             
-            // init gui
+            // init menu
             window.stats = new Stats();
             document.body.appendChild(stats.dom);
-            window.gui = new GUI({title: `${title} ${version}`});
+            window.menu = new GUI({title: `${title} ${version}`});
+            menu.domElement.id = "menu";
             
-            // c3cube config
-            const gui_folder_config = gui.addFolder("c3cube config").close();
-            const gui_obj_config = {
+            // menu config
+            const menu_config = menu.addFolder("c3cube config").close();
+            const menu_config_data = {
                 cube_order: default_order, 
-                operate_interval: c3cubeg.params_animate_operate.interval,
+                operate_interval: c3cubeg.params_operate.interval,
                 apply_changes: function() {
                     c3cube = new C3Cube(this.cube_order);
                     c3cubeg.apply_c3cube(c3cube);
-                    c3cubeg.params_animate_operate.interval = this.operate_interval;
+                    c3cubeg.params_operate.interval = this.operate_interval;
+                },
+                toggle_help: () => {
+                    toggle_element("info");
                 }
             }
-            gui_folder_config.add(gui_obj_config, "cube_order", 3, 20, 1);
-            gui_folder_config.add(gui_obj_config, "operate_interval", 0, 2000, 100);
-            gui_folder_config.add(gui_obj_config, "apply_changes");
-            gui_folder_config.add({help: toggle_webinfo}, "help");
+            menu_config.add(menu_config_data, "cube_order", 3, 20, 1);
+            menu_config.add(menu_config_data, "operate_interval", 0, 2000, 20);
+            menu_config.add(menu_config_data, "apply_changes");
+            menu_config.add(menu_config_data, "toggle_help");
             
-            // c3cube operate
-            const gui_folder_operate = gui.addFolder("c3cube operate").close();
-            const gui_obj_operate = {
+            // menu operate
+            const menu_operate = menu.addFolder("c3cube operate").close();
+            const menu_operate_data = {
                 pop_operate: ()=>{
                     if(c3cube.operate_stack.length<=0) alert("c3cube.operate_stack is emplty!")
                     else c3cubeg.pop_operate();
@@ -146,15 +158,19 @@
                 reset_scene: ()=>{
                     c3cubeg.apply_c3cube(c3cubeg.c3core);
                 },
-                fullscreen: toggle_screenfull
+                toggle_flatten: ()=> {
+                    toggle_element("info_c3cubeflatten");
+                },
+                toggle_screenfull: toggle_screenfull
             }   
-            gui_folder_operate.add(gui_obj_operate, "pop_operate");
-            gui_folder_operate.add(gui_obj_operate, "reset_scene");
-            gui_folder_operate.add(gui_obj_operate, "fullscreen");
-
-            // c3cube serialization
-            const gui_folder_tool = gui.addFolder("c3cube tool").close();
-            const gui_obj_tool = {
+            menu_operate.add(menu_operate_data, "pop_operate");
+            menu_operate.add(menu_operate_data, "reset_scene");
+            menu_operate.add(menu_operate_data, "toggle_flatten");
+            menu_operate.add(menu_operate_data, "toggle_screenfull");
+            
+            // menu tool
+            const menu_tool = menu.addFolder("c3cube tool").close();
+            const menu_tool_data = {
                 save_operates: ()=> {
                     var operates_str = (new C3CubeUtil()).dump_operates(c3cubeg.c3core.operate_stack);
                     console.log("save_operates:", operates_str);
@@ -170,7 +186,7 @@
                             const operates_str = e2.target.result;
                             console.log("load_operates: ", operates_str);
                             const operates = (new C3CubeUtil()).load_operates(operates_str);
-                            c3cube = new C3Cube(gui_obj_config.cube_order);
+                            c3cube = new C3Cube(menu_config_data.cube_order);
                             for(idx in operates) {
                                 const operate = operates[idx];
                                 c3cube.push_operate(operate[0], operate[1]);
@@ -194,42 +210,39 @@
                             const c3cube_str = e2.target.result;
                             c3cubeg.c3core.load(c3cube_str);
                             console.log("load_status: ", c3cubeg.c3core);
-                            gui_folder_config.c3cube_order = c3cubeg.c3core.order;
+                            menu_config.c3cube_order = c3cubeg.c3core.order;
                             c3cubeg.apply_c3cube(c3cubeg.c3core);
                         }
                     }
                     input.click();
                 }
             }
-            gui_folder_tool.add(gui_obj_tool, "save_operates");
-            gui_folder_tool.add(gui_obj_tool, "load_operates");
-            gui_folder_tool.add(gui_obj_tool, "save_status");
-            gui_folder_tool.add(gui_obj_tool, "load_status");
+            menu_tool.add(menu_tool_data, "save_operates");
+            menu_tool.add(menu_tool_data, "load_operates");
+            menu_tool.add(menu_tool_data, "save_status");
+            menu_tool.add(menu_tool_data, "load_status");
         
-            scale_full2(canvas, 4/3);
             mainloop();
         };
 
         window.onresize = (event) => {
-            const canvas = document.getElementById('canvas');
-            scale_full2(canvas, 4/3);
+            resize_elements();
         };
 
         window.onkeydown = (event) => {
             switch(event.key) {
                 case "F2":
-                    console.log("222")
-                    toggle_webinfo();
+                    toggle_element("info");
                     break;
-                case "F9":
-                    toggle_webmenu();
+                case "1":
+                    toggle_element("info_c3cubeflatten");
                     break;
             }
         };
     </script>
 
     <style>
-    #webinfo {
+    #info {
         position: fixed; 
         display: none;
         border-radius: 10px;
@@ -242,16 +255,50 @@
         max-width: 700px;
         text-align: left;
         color: snow;    
-        background: #6495e866;
+        background: #00ffe487;
     }
 
-    #webinfo p {
+    #info p {
         margin-left: 10%; 
         margin-right: 10%;
     }
+
+    #info_c3cubeflatten {
+        position: fixed; 
+        display: block;
+        opacity: 0.7;
+        bottom: 0px;
+        z-index: 1001;
+    }
+
+    #info_c3cubeflatten img { 
+        display: none;
+        width: 100%;
+        border-radius: 20px;
+    }
+
+    #info_c3cubeflatten canvas { 
+        display: block;
+        width: 100%;
+        border-radius: 20px;
+    }
+
+    #menu {
+        position: fixed;
+        right: 0px;
+        bottom: 0px;
+        top: auto;
+        max-height: 100%;
+        z-index: 1001;
+    }
+
     </style>
 
-    <div id="webinfo">
+    <div style="display: flex; flex-direction: column;">
+        <canvas id="canvas" width="1280px" height="960px" style=" margin: 0 auto; background:pink"></canvas>
+    </div>
+
+    <div id="info">
         <p> This is a webgl/nodejs experiment project for n order Rubik's Cube </p>
         <p> See <a href="https://github.com/YuriSizuku/web-C3Cube" target="_blank"> web-C3Cube </a>in details, 
             (press F2, or help to close this window)</p>
@@ -260,5 +307,10 @@
         <p>[wheel|two figers] to zoom in/out</p>
         <p>[right button|two figers] point on backgroud to translate camera</p>
         <p>[left button|one figer] point on cube piece to operate</p>
+    </div>
+
+    <div id="info_c3cubeflatten">
+        <canvas></canvas>
+        <img src=""></img>
     </div>
 </body>
