@@ -28,7 +28,7 @@
         window.C3CubeGraphic = C3CubeGraphic;
     </script>
 
-    <meta name="version" content="v0.2"/>
+    <meta name="version" content="v0.2.1"/>
     <title>C3Cube</title>
 </head>
 
@@ -61,7 +61,7 @@
         function download(filename, blob){
             var a = document.createElement("a"); 
             a.innerHTML = filename;
-            a.download = filename; //下载内容
+            a.download = filename;
             a.href = URL.createObjectURL(blob);
             a.click();
         }
@@ -127,7 +127,7 @@
                 operate_interval: c3cubeg.params_animate_operate.interval,
                 apply_changes: function() {
                     c3cube = new C3Cube(this.cube_order);
-                    c3cubeg = new C3CubeGraphic(c3cube, canvas);
+                    c3cubeg.apply_c3cube(c3cube);
                     c3cubeg.params_animate_operate.interval = this.operate_interval;
                 }
             }
