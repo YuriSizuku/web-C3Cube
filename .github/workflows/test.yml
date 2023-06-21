@@ -1,4 +1,4 @@
-name: build android
+name: test c3cube
 on:
   push:
   pull_request: 
