@@ -26,13 +26,12 @@ const C3Cube = function(n) {
 }
 
 C3Cube.prototype.init_pieces = function() {
-    var a = this.imin;
-    var b = this.imax;
-    var cmap = this.colormap;
-    var coords_corner = (new C3CubeUtil).enum_corner(this.order);
-    var coords_edge = (new C3CubeUtil).enum_edge(this.order);
-    var coords_inner = (new C3CubeUtil).enum_inner(this.order);
-    var pieces = [];
+    const b = this.imax;
+    const cmap = this.colormap;
+    const coords_corner = (new C3CubeUtil).enum_corner(this.order);
+    const coords_edge = (new C3CubeUtil).enum_edge(this.order);
+    const coords_inner = (new C3CubeUtil).enum_inner(this.order);
+    const pieces = [];
     var p = [], o = [], c = [];
 
     // corner piece, 8
@@ -74,9 +73,8 @@ C3Cube.prototype.init_pieces = function() {
 }
 
 C3Cube.prototype.print_status = function() {
-    var b = this.imax;
-    var pieces = this.pieces;
-    var coords = (new C3CubeUtil).enum_all(this.order);
+    const pieces = this.pieces;
+    const coords = (new C3CubeUtil).enum_all(this.order);
 
     console.log(`C3Cube order=${this.order}, corner=${this.ncorner}, edge=${this.nedge}, inner=${this.ninner}`);
 
@@ -87,36 +85,35 @@ C3Cube.prototype.print_status = function() {
 }
 
 C3Cube.prototype.print_operates = function(type) {
-
+    const operate_str = (new C3CubeUtil).dump_operates(this.operate_stack);
+    console.log(operate_str);
 }
 
-C3Cube.prototype.push_operate = function(axis, l) {
-    this.operate_stack.push([axis, l]);
-    this.operate(axis, l);
+C3Cube.prototype.push_operate = function(axis, l, times=1) {
+    this.operate_stack.push([axis, l, times]);
+    this.operate(axis, l, times);
 }
 
-C3Cube.prototype.pop_operate = function(reserve=false) {
-    var end = this.operate_stack.length - 1;
-    if (end < 0) return null;
-    var F = [];
-    if(reserve) {
-        F = this.operate_stack[end];
-    }
-    else {
-        F = this.operate_stack.pop();
-        this.operate.apply(this, F);
-        this.operate.apply(this, F);
-        this.operate.apply(this, F);
-    }
-    return F;
+C3Cube.prototype.pop_operate = function() {
+    if (this.operate_stack.length <= 0) return null;
+    const operate = this.operate_stack.pop();
+    let times = operate[2];
+    times %= 4;
+    if(times<0) times += 4;
+    this.operate(operate[0], operate[1], 4-times);
+    return operate;
 }
 
-C3Cube.prototype.operate = function(axis, l) {
-    var pieces = this.pieces;
-    for(let idx in pieces) {
-        if(!pieces[idx]) continue;
-        var p = pieces[idx].p;
-        if(math.equal(p[axis], l)) pieces[idx].operate(axis, l);
+C3Cube.prototype.operate = function(axis, l, times=1) {
+    const pieces = this.pieces;
+    times %= 4;
+    if(times<0) times += 4;
+    for(let i=0;i<times;i++){
+        for(let idx in pieces) {
+            if(!pieces[idx]) continue;
+            const p = pieces[idx].p;
+            if(math.equal(p[axis], l)) pieces[idx].operate(axis, l);
+        }
     }
 }
 
@@ -145,7 +142,7 @@ C3Cube.prototype.load = function(json_str) {
     this.operate_stack = c3cube_json.operate_stack;
     this.pieces = [];
     for(let idx in c3cube_json.pieces) {
-        var piece =  c3cube_json.pieces[idx];
+        const piece =  c3cube_json.pieces[idx];
         if(!piece) continue;
         this.pieces[idx] = new C3CubePiece(piece.p, piece.o, piece.c, piece.p0);
     }
@@ -178,8 +175,8 @@ C3Cube.prototype.colormapr = {
 * @param {Array.<int[3]>} o, axis orientation, like (0, 0, 1)
 */
 C3Cube.prototype.color_idx = function(o) {
-    var ta = math.add([3, 7, 11], o);
-    var tb = math.abs(o);
+    const ta = math.add([3, 7, 11], o);
+    const tb = math.abs(o);
     return math.dot(ta, tb)/2;
 }
 
@@ -190,7 +187,7 @@ C3Cube.prototype.color_idx = function(o) {
  * @param {Array.<string[3]>} p0, the origin coordinate
  */
 const C3CubePiece = function(p, o, c, p0=null) {
-    var ijkbase = this.ijkbase;
+    const ijkbase = this.ijkbase;
     this.p = p;
     this.o = [ijkbase[0]*o[0], ijkbase[1]*o[1], ijkbase[2]*o[2]];
     this.c = c;
@@ -218,10 +215,10 @@ C3CubePiece.prototype.T3 = [math.inv(_T[0]), math.inv(_T[1]), math.inv(_T[2])];
 C3CubePiece.prototype.ijkbase = [1, 2, 3];
 
 C3CubePiece.prototype.print_status = function() {
-    var p0 = this.p0;
-    var p = this.p;
-    var o = math.sign(this.o);
-    var c = this.c;
+    const p0 = this.p0;
+    const p = this.p;
+    const o = math.sign(this.o);
+    const c = this.c;
     // console.log(p0, p, o, c);
     console.log(`(${p0[0]}, ${p0[1]}, ${p0[2]}): (${p[0]}, ${p[1]}, ${p[2]}), (${o[0]}, ${o[1]}, ${o[2]}), (${c[0]}, ${c[1]}, ${c[2]}))`);
 }
@@ -234,14 +231,14 @@ C3CubePiece.prototype.operate = function(axis) {
     
     // before orientation transfer
     var o1 = math.transpose(math.matrix([this.o]));
-    var M = math.diag(math.sign([this.o[0], this.o[1], this.o[2]]));
+    const M = math.diag(math.sign([this.o[0], this.o[1], this.o[2]]));
     o1 = math.multiply(M, o1);
     o1 = math.multiply(this.T[axis], o1);
     o1 = math.multiply(M, o1);
 
     // after orientation transfer, permute to i, j, k
-    var o = [o1.get([0, 0]), o1.get([1, 0]), o1.get([2, 0])];
-    var c = this.c;
+    const o = [o1.get([0, 0]), o1.get([1, 0]), o1.get([2, 0])];
+    const c = this.c;
     for(let i=0;i<3;i++){
         for(let j=i;j<3;j++){
             if(math.abs(o[i]) > math.abs(o[j])) {
@@ -263,16 +260,16 @@ const C3CubeUtil = function() {}
  */
 C3CubeUtil.prototype.load_operates = function(operates_str)  {
     if(!operates_str || operates_str.length==0) return [];
-    var operates = [];
+    const operates = [];
     var axis=0, l=1, times = 0;
     var mode_axis=true, mode_fluse=false, mode_reverse=false;
     var invalid = false;
     for(let i in operates_str) {
-        var c = operates_str[i].toUpperCase();
+        const c = operates_str[i].toUpperCase();
         if (c>='X' && c<='Z') {
             if(mode_fluse) {
                 if(times<0) times = times%4 + 4;
-                for(let t=0; t<times; t++) operates.push([axis, l]);
+                operates.push([axis, l, times]);
             }
             if(c=='X') axis = 0;
             else if (c=='Y') axis = 1;
@@ -305,7 +302,7 @@ C3CubeUtil.prototype.load_operates = function(operates_str)  {
     }
     if(mode_fluse) {
         if(times<0) times = times%4;
-        for(let t=0; t<times; t++) operates.push([axis, l]);
+        operates.push([axis, l, times]);
         mode_fluse = false;
     }
     return operates;
@@ -318,33 +315,17 @@ C3CubeUtil.prototype.load_operates = function(operates_str)  {
  */
 C3CubeUtil.prototype.dump_operates = function(operates) {
     if(!operates || operates.length==0) return "";
-    var times = 1;
-    var axis_map = {0: 'X', 1: 'Y', 2: 'Z'};
-    var last_operate;
+    const axis_map = {0: 'X', 1: 'Y', 2: 'Z'};
     var operates_str = "";
     for(let idx in operates) {
-        if(idx>0) {
-            if(math.deepEqual(operates[idx], operates[idx-1])) {
-                times++;
-            }
-            else {
-                times = times%4;
-                var axis=last_operate[0];
-                var l=last_operate[1];
-                if(times==1) operates_str += `${axis_map[axis]}(${l})`;
-                else operates_str += `${axis_map[axis]}(${l},${times})`;
-                times = 1;
-            }
-        }
-        last_operate = operates[idx]; 
+        const operate = operates[idx];
+        const axis = operate[0];
+        const l = operate[1];
+        const times = operate[2];
+        
+        if(times==1) operates_str += `${axis_map[axis]}(${l})`;
+        else operates_str += `${axis_map[axis]}(${l},${times})`;
     }
-
-    times = times%4;
-    var axis=last_operate[0];
-    var l=last_operate[1];
-    if(times==1) operates_str += `${axis_map[axis]}(${l})`;
-    else operates_str += `${axis_map[axis]}(${l},${times})`;
-    
     return operates_str;
 }
 
@@ -355,8 +336,8 @@ C3CubeUtil.prototype.dump_operates = function(operates) {
  * @returns {boolean}
  */
 C3CubeUtil.prototype.valid_pos = function(n, p) {
-    var a = (n+1)%2;
-    var b = math.floor(n/2);
+    const a = (n+1)%2;
+    const b = math.floor(n/2);
     var flag = false;
     for(let i=0;i<3;i++) {
         if(math.abs(p[i]) < a || math.abs(p[i])>b) return false;
@@ -372,11 +353,11 @@ C3CubeUtil.prototype.valid_pos = function(n, p) {
  * @return {int} 
  */
 C3CubeUtil.prototype.encode_pos = function(n, p) {
-    var a = (n+1)%2;
-    var b = math.floor(n/2);
-    var t1 = p[0] + b - a*(p[0]>0);
-    var t2 = p[1] + b - a*(p[1]>0);
-    var t3 = p[2] + b - a*(p[2]>0);
+    const a = (n+1)%2;
+    const b = math.floor(n/2);
+    const t1 = p[0] + b - a*(p[0]>0);
+    const t2 = p[1] + b - a*(p[1]>0);
+    const t3 = p[2] + b - a*(p[2]>0);
     return t1 + n*t2 + n*n*t3;
 }
 
@@ -387,11 +368,11 @@ C3CubeUtil.prototype.encode_pos = function(n, p) {
  * @return {int[3]} 
  */
 C3CubeUtil.prototype.decode_pos = function(n, idx) {
-    var a = (n+1)%2;
-    var b = math.floor(n/2);
-    var t1 = idx % n;
-    var t2 = parseInt((idx - t1)/n) % n;
-    var t3 = parseInt((idx - t1 - t2*n)/n/n);
+    const a = (n+1)%2;
+    const b = math.floor(n/2);
+    const t1 = idx % n;
+    const t2 = parseInt((idx - t1)/n) % n;
+    const t3 = parseInt((idx - t1 - t2*n)/n/n);
     return [t1 - b + a*(t1>=b), 
             t2 - b + a*(t2>=b), 
             t3 - b + a*(t3>=b)];
@@ -413,9 +394,8 @@ C3CubeUtil.prototype.enum_all = function(n) {
  * @returns {Array.<int[3]>}
  */
 C3CubeUtil.prototype.enum_corner = function(n) {
-    var a = (n+1)%2;
-    var b = math.floor(n/2);
-    var coords = [[-b, -b, -b], [b, -b, -b], [-b, b, -b], [-b, -b, b], 
+    const b = math.floor(n/2);
+    const coords = [[-b, -b, -b], [b, -b, -b], [-b, b, -b], [-b, -b, b], 
         [-b, b, b], [b, -b,  b], [b, b, -b], [b, b, b]];
     return coords;
 }
@@ -426,10 +406,10 @@ C3CubeUtil.prototype.enum_corner = function(n) {
  * @returns {Array.<int[3]>}
  */
 C3CubeUtil.prototype.enum_edge = function(n) {
-    var a = (n+1)%2;
-    var b = math.floor(n/2);
+    const a = (n+1)%2;
+    const b = math.floor(n/2);
     var a1 = a;
-    var coords = [];
+    const coords = [];
     
     if(a==0) {
         a1 = a+1;
@@ -461,10 +441,10 @@ C3CubeUtil.prototype.enum_edge = function(n) {
  * @returns {Array.<int[3]>}
  */
 C3CubeUtil.prototype.enum_inner = function(n) {
-    var a = (n+1)%2;
-    var b = math.floor(n/2);
+    const a = (n+1)%2;
+    const b = math.floor(n/2);
     var a1 = a;
-    var coords = [];
+    const coords = [];
 
     if(a==0) {
         a1 = a+1;
@@ -511,10 +491,10 @@ C3CubeUtil.prototype.enum_inner = function(n) {
  * @returns {Array.<int[3]>}
  */
 C3CubeUtil.prototype.enum_axis = function(n, axis, l) {
-    var a = (n+1)%2;
-    var b = math.floor(n/2);
+    const a = (n+1)%2;
+    const b = math.floor(n/2);
+    const coords = [];
     var a1 = a;
-    var coords = [];
     var p = [0, 0, 0];
 
     if(a==0) {
@@ -575,24 +555,24 @@ C3CubeUtil.prototype.enum_axis = function(n, axis, l) {
  */
 C3CubeUtil.prototype.dist_cube = function(c1, c2) {
     if(c1.order!=c2.order) throw new Error("cube order must be the same order");
-    var n = c1.order;
-    var coords = this.enum_all(n);
-    var tmp_pieces1 = [], tmp_pieces2 = [];
+    const n = c1.order;
+    const coords = this.enum_all(n);
+    const tmp_pieces1 = [], tmp_pieces2 = [];
     for (let idx in coords) {
-        var p = coords[idx];
-        var u1 = c1.pieces[this.encode_pos(n, p)];
-        var u2 = c2.pieces[this.encode_pos(n, p)];
-        var p1 = u1.p;
-        var p2 = u2.p;
+        const p = coords[idx];
+        const u1 = c1.pieces[this.encode_pos(n, p)];
+        const u2 = c2.pieces[this.encode_pos(n, p)];
+        const p1 = u1.p;
+        const p2 = u2.p;
         tmp_pieces1[this.encode_pos(n, p1)] = u1;
         tmp_pieces2[this.encode_pos(n, p2)] = u2;
     }
 
     var d = 0;
     for (let idx in coords) {
-        var p = coords[idx];
-        var u1 = tmp_pieces1[this.encode_pos(n, p)];
-        var u2 = tmp_pieces2[this.encode_pos(n, p)];
+        const p = coords[idx];
+        const u1 = tmp_pieces1[this.encode_pos(n, p)];
+        const u2 = tmp_pieces2[this.encode_pos(n, p)];
         d += this.dist_pieces(u1, u2);
     }
     return d;
@@ -615,10 +595,10 @@ C3CubeUtil.prototype.dist_pieces = function(u1, u2) {
   * @return {C3CubePiece[]}
   */
  C3CubeUtil.prototype.align_pieces = function(n, pieces) {
-    var pieces_aligned = [];
+    const pieces_aligned = [];
     for(let idx in pieces) {
-        var piece = pieces[idx];
-        var idx2 = this.encode_pos(piece.p);
+        const piece = pieces[idx];
+        const idx2 = this.encode_pos(piece.p);
         pieces_aligned[idx2] = piece;
     }
     return pieces_aligned;
@@ -631,4 +611,5 @@ export {C3Cube, C3CubePiece, C3CubeUtil}
  *   v0.1, initial version with cube status and operate
  *   v0.2, cube operate stack, util functions for coordinate, operate encode
  *   v0.2.1, add dump/load function for c3cube
+ *   v0.2.2, change the operate_stack with format [axis, l, times]
  */

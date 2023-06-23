@@ -2,7 +2,7 @@
 
 /**
  * c3cube_graphic.js, cube render implementation
- *   v0.2.1, developed by devseed
+ *   v0.2.4, developed by devseed
  */
 
 import * as THREE from 'three'
@@ -56,8 +56,8 @@ const C3CubeGraphic = function(c3cube, canvas) {
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
     this.camera.up.set(0, 0, 1); // z axis up
     this.params_operate = { 
-        interval: 300, clock: null, 
-        targets: [], reverse: false, axis: 0, l: 0,
+        interval: 300, clock: null, steps: 0, 
+        targets: [], operate: [],
         flag_update: true
     };
 
@@ -108,11 +108,11 @@ C3CubeGraphic.prototype.create_c3obj = function(c3cube){
     const size_gap = c3cube.order <10 ? 0.024: 0.04 
 
     for(let idx in c3cube.pieces) {
-        var piece = c3cube.pieces[idx];
+        const piece = c3cube.pieces[idx];
         if(!piece) continue;
-        var p = piece.p, o = piece.o, c = piece.c;
-        var materials = []; // front->R, back->O,  right->Y, left->W, up->B, down->G
-        var colors = [];
+        const p = piece.p, o = piece.o, c = piece.c;
+        const materials = []; // front->R, back->O,  right->Y, left->W, up->B, down->G
+        const colors = [];
         if(o[0]>0) colors[0] = cmap[cmapr[c[0]]];
         else colors[1] = cmap[cmapr[c[0]]];
         if(o[1]>0) colors[2] = cmap[cmapr[c[1]]];
@@ -124,7 +124,7 @@ C3CubeGraphic.prototype.create_c3obj = function(c3cube){
             materials[i] = this.create_c3face_material(new THREE.Color(colors[i]), size_gap);
         }
 
-        var mesh = new THREE.Mesh(geometry, materials);
+        const mesh = new THREE.Mesh(geometry, materials);
         mesh.position.copy(this.coord_c3graphic(p));
         mesh.name = this.NAME_C3PIECE;
         c3obj.add(mesh);
@@ -186,11 +186,12 @@ C3CubeGraphic.prototype.apply_c3cube = function(c3cube) {
     this.scene = new THREE.Scene();
     this.scene.add(this.c3obj);
     this.params_operate.flag_update = true;
+    this.params_operate.steps = c3cube.operate_stack.length;
     
     // adjust length
     const n = this.c3core.order;
     const b = this.c3core.imax;
-    var d = n<=5 ? 3*b: 2*b; 
+    const d = n<=5 ? 3*b: 2*b; 
     this.camera.position.set(d, d, d);
     this.axeshelper = new THREE.AxesHelper(10*b);
     this.axeshelper.setColors(this.colormap[2], this.colormap[4], this.colormap[6]);
@@ -213,6 +214,7 @@ C3CubeGraphic.prototype.flatten_c3cube = function(options) {
     const b = c3cube.imax;
     var x, y, dx, dy;
     
+    if(!options) options = {};
     if(options.side_len) side_len = options.side_len;
     if(side_len==0) side_len = h/(3*n);
     else {w = side_len*4*n; h = side_len*3*n;}
@@ -298,74 +300,112 @@ C3CubeGraphic.prototype.flatten_c3cube = function(options) {
     return img_canvas; 
 }
 
-C3CubeGraphic.prototype.push_operate = function(axis, l, reverse=false) {
-    if(this.operate(axis, l, reverse, false)) {
-        this.c3core.push_operate(axis, l);
-        if(reverse) {
-            this.c3core.push_operate(axis, l);
-            this.c3core.push_operate(axis, l);
-        }
+C3CubeGraphic.prototype.push_operate = function(axis, l, times=1) {
+    if(this.operate(axis, l, times, {update_c3core: false})) {
+        this.c3core.push_operate(axis, l, times);
+        this.params_operate.steps = this.c3core.operate_stack.length;
         return true;
     }
     return false;
 }
 
 C3CubeGraphic.prototype.pop_operate = function() {
-    var operate_stack = this.c3core.operate_stack;
-    var last = operate_stack.length - 1;
-    var reverse = true;
+    const operate_stack = this.c3core.operate_stack;
+    const last = operate_stack.length - 1;
     if(last<0) return false;
     
-    var last_operate = operate_stack[last]
-    if(last>=2) {
-        if(math.deepEqual(last_operate, operate_stack[last-1]) && 
-            math.deepEqual(last_operate, operate_stack[last-2]))
-            reverse = false;
-    }
-    if(this.operate(last_operate[0], last_operate[1], reverse, false)) {
+    const last_operate = operate_stack[last]
+    var times = last_operate[2] % 4;
+    if(times<0) times+=4;
+    times = 4 - times;
+    if(this.operate(last_operate[0], last_operate[1], 
+            times==3?-1:times, {update_c3core: false})) {
         this.c3core.pop_operate();
-        if(reverse==false) {
-            this.c3core.pop_operate();
-            this.c3core.pop_operate();
-        }
+        this.params_operate.steps = this.c3core.operate_stack.length;
     }
     return false;
 }
+
+C3CubeGraphic.prototype.seek_operate = function(idx, origin="SEEK_SET") {
+    var next = 0;
+    const cur = this.params_operate.steps;
+    const size = this.c3core.operate_stack.length;
+    if(origin=="SEEK_END") next = size + idx;
+    else if (origin=="SEEK_SET") next = idx;
+    else if (origin=="SEEK_CUR") next = cur + idx;
+    else throw new Error(`invalid origin type ${origin}`);
+    if(next < 0) return {next: next, operate: null, error: "no previous operate to seek!"};
+    if(next>size) return {next: next, operate: null, error: "no next operate to seek!"};
+    if(cur<=next){
+        for(let i=cur; i<next; i++) {
+            let operate = this.c3core.operate_stack[i];
+            let times = operate[2];
+            this.operate(operate[0], operate[1], times, 
+                {update_c3core: true, no_animate:true});
+        }
+    }
+    else {
+        for(let i=cur-1; i>=next; i--) {
+            let operate = this.c3core.operate_stack[i];
+            let times = operate[2] % 4;
+            if(times<0) times+=4;
+            this.operate(operate[0], operate[1], 4 - times, 
+                {update_c3core: true, no_animate:true});
+        }
+    }
+    // console.log(`(${origin}, ${idx}), cur=${cur}, next=${next}, size=${size}`);
+    this.params_operate.steps = next;
+    return {next: next, operate: this.c3core.operate_stack[next]};
+}
+
 
 /**
  * operate on cube
  * @param {int} axis 
  * @param {int} l 
- * @param {boolean} reverse, operate in reverse (clockwise) direction
- * @param {boolean} update_c3core , synchronize c3cube core status
+ * @param {int} times
+ * @param {Object} options , update_c3core, synchronize c3cube core status
  * @returns 
  */
-C3CubeGraphic.prototype.operate = function(axis, l, reverse=false, update_c3core=true) {
-    var params = this.params_operate;
+C3CubeGraphic.prototype.operate = function(axis, l, times=1, 
+        options={update_c3core:true, no_animate:false}) {
+    const params = this.params_operate;
     if(params.clock) {
         console.log("can't operate while last operate animate not finished!");
         return false;
     }
+    if(params.steps != this.c3core.operate_stack.length && !options.no_animate) {
+        alert("can not operate on cube while in previous steps");
+        return false;
+    }
 
     params.targets = [];
-    params.axis = axis;
-    params.l = l;
-    params.reverse = reverse;
+    params.operate = [axis, l, times];
     this.c3obj.traverse((obj)=>{
         if(obj.name!=this.NAME_C3PIECE) return;
-        var p = this.coord_c3core(obj.position)
-        if(math.equal(parseInt(p[axis]), l)) {
+        const p = this.coord_c3core(obj.position)
+        if(!math.equal(parseInt(p[axis]), l)) return;
+        if(options.no_animate) {
+            var M = new THREE.Matrix4();
+            const theta = math.pi/2 * times;
+            if(axis==0) M.makeRotationX(theta);
+            if(axis==1) M.makeRotationY(theta);
+            if(axis==2) M.makeRotationZ(theta);
+            obj.applyMatrix4(M);
+            params.flag_update = true;
+        }
+        else {
             params.targets.push({mesh:obj, p: obj.position.clone(), q:obj.quaternion.clone()});
         }
     });
-    params.clock = new THREE.Clock();
-    if(update_c3core) {
-        this.c3core.operate(axis, l);
-        if(reverse) {
-            this.c3core.operate(axis, l);
-            this.c3core.operate(axis, l);
-        }
+
+    if(!options.no_animate) params.clock = new THREE.Clock();
+
+    if(options.update_c3core) {
+        this.c3core.operate(axis, l, times);
+        params.steps = this.c3core.operate_stack.length;
     }
+
     return true;
 }
 
@@ -403,11 +443,12 @@ C3CubeGraphic.prototype.c3piece_mousemove = function(intersect) {
     if(this.params_operate.clock) return;
     const intersect_pre = this.control_c3piece.intersect;
     if(!intersect_pre) return;
+    this.contorl_orbits.enabled = false;
     if(!intersect) return;
     
     const n = this.c3core.order;
-    var obj1 = intersect_pre.object;
-    var obj2 = intersect.object;
+    const obj1 = intersect_pre.object;
+    const obj2 = intersect.object;
     var vec = obj2.position.clone().sub(obj1.position);
     var arrow_operate = this.control_c3piece.arrow_operate;
     var arrow_normal = this.control_c3piece.arrow_normal;
@@ -442,15 +483,15 @@ C3CubeGraphic.prototype.c3piece_mouseup = function(intersect) {
     if(!intersect_pre) return;
     if(!intersect) return;
 
-    var axis = -1, reverse = false;
-    var obj1 = intersect_pre.object;
-    var obj2 = intersect.object;
+    var axis = -1, times = 1;
+    const obj1 = intersect_pre.object;
+    const obj2 = intersect.object;
     var normal = face_normal(intersect_pre);
     var vec = obj2.position.clone().sub(obj1.position);
     var normal2 = normal.clone().cross(vec).normalize();
-    var normal2_arr = [normal2.x, normal2.y, normal2.z]
+    
     var normal2_max = 0.01;
-    axis = -1;
+    const normal2_arr = [normal2.x, normal2.y, normal2.z]
     for(let i=0; i < normal2_arr.length; i++) {
         let cur = math.abs(normal2_arr[i]);
         if(cur > normal2_max) {
@@ -459,10 +500,10 @@ C3CubeGraphic.prototype.c3piece_mouseup = function(intersect) {
         }
     }
     if(axis >= 0) {
-        reverse = (normal2_arr[axis] < 0);
+        if(normal2_arr[axis] < 0) times=-1;
         var p1 = this.coord_c3core(obj1.position);
         // console.log(axis, p1, "normal", normal, "vec", vec, "normal2", normal2);
-        this.push_operate(axis, parseInt(math.round(p1[axis])), reverse);
+        this.push_operate(axis, parseInt(math.round(p1[axis])), times);
     }
 
     this.control_c3piece.intersect = null;
@@ -475,7 +516,7 @@ C3CubeGraphic.prototype.c3piece_mouseup = function(intersect) {
  */
 C3CubeGraphic.prototype.coord_c3graphic = function(p) {
     const a = this.c3core.imin;
-    var r = [a==0 ? 0: -0.5*math.sign(p[0]), 
+    const r = [a==0 ? 0: -0.5*math.sign(p[0]), 
         a==0 ? 0: -0.5*math.sign(p[1]), 
         a==0 ? 0: -0.5*math.sign(p[2])];
     return new THREE.Vector3(p[0]+r[0], p[1]+r[1], p[2]+r[2]);
@@ -488,7 +529,7 @@ C3CubeGraphic.prototype.coord_c3graphic = function(p) {
  */
 C3CubeGraphic.prototype.coord_c3core = function (p) {
     const a = this.c3core.imin;
-    var r = [a==0 ? 0: -0.5*math.sign(p.x), 
+    const r = [a==0 ? 0: -0.5*math.sign(p.x), 
         a==0 ? 0: -0.5*math.sign(p.y), 
         a==0 ? 0: -0.5*math.sign(p.z)];
     return math.round([p.x-r[0], p.y-r[1], p.z-r[2]]);
@@ -543,9 +584,11 @@ C3CubeGraphic.prototype._init_events = function() {
 } 
 
 C3CubeGraphic.prototype._animate_operate = function() {
-    var params = this.params_operate;
-    var interval = params.clock.getElapsedTime ()*1000;
-    var theta = math.pi/2 * (params.reverse ? -1: 1);
+    const params = this.params_operate;
+    const axis = params.operate[0];
+    const times = params.operate[2];
+    const interval = params.clock.getElapsedTime ()*1000;
+    var theta = math.pi/2 * times;
     if(interval >= params.interval) {
         params.clock = null;
         params.flag_update = true;
@@ -553,12 +596,12 @@ C3CubeGraphic.prototype._animate_operate = function() {
     else theta *= interval/params.interval;
     
     var M = new THREE.Matrix4();
-    if(params.axis==0) M.makeRotationX(theta);
-    if(params.axis==1) M.makeRotationY(theta);
-    if(params.axis==2) M.makeRotationZ(theta);
+    if(axis==0) M.makeRotationX(theta);
+    if(axis==1) M.makeRotationY(theta);
+    if(axis==2) M.makeRotationZ(theta);
     for(let idx in params.targets) { 
         // reset position for decrese accumulated error
-        var target = params.targets[idx];
+        const target = params.targets[idx];
         target.mesh.position.copy(target.p);
         target.mesh.quaternion.copy(target.q);
         target.mesh.applyMatrix4(M);
@@ -585,5 +628,5 @@ export {C3CubeGraphic}
  *   v0.2.1, optimize the user interface
  *   v0.2.2, add shader for c3piece, touch support
  *   v0.2.3, fix memory link of three by dispose
- *   v0.2.4, add flatten_c3cube function
+ *   v0.2.4, add flatten_c3cube function, move to steps
  */

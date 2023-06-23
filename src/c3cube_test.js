@@ -49,14 +49,14 @@ C3CubeCoreTest.prototype.validate_operatestr = function(operates_str, operates_g
 
 C3CubeCoreTest.prototype.validate_enum = function() {
     // validate by type
-    var n = this.c0.order;
-    var a = this.c0.imin;
-    var b = this.c0.imax;
-    var coords_corner = this.util.enum_corner(n);
-    var coords_edge = this.util.enum_edge(n);
-    var coords_inner = this.util.enum_inner(n);
+    const n = this.c0.order;
+    const a = this.c0.imin;
+    const b = this.c0.imax;
+    const coords_corner = this.util.enum_corner(n);
+    const coords_edge = this.util.enum_edge(n);
+    const coords_inner = this.util.enum_inner(n);
+    const coords_set = new Set();
     var coords = [];
-    var coords_set = new Set();
     assert.equal(coords_corner.length, this.c0.ncorner);
     assert.equal(coords_edge.length, this.c0.nedge);
     assert.equal(coords_inner.length, this.c0.ninner);
@@ -157,9 +157,9 @@ C3CubeCoreTest.prototype.validate_initstatus = function() {
 } 
 
 C3CubeCoreTest.prototype.validate_operate = function() {
-    var n = this.c0.order;
-    var a = this.c0.imin;
-    var b = this.c0.imax;
+    const n = this.c0.order;
+    const a = this.c0.imin;
+    const b = this.c0.imax;
     var c0=this.c0, c1;
     for(let axis=0;axis<3;axis++) {
         for(let l=-b; l<0; l++) {
@@ -240,7 +240,7 @@ function debug_c4(){
 function operate_encode_test() {
     var operate_test = new C3CubeCoreTest(3);
     var operate_str = "X(1)Y(-1), Z(11) X(0, -1), X(1, 2), Y(-2,2)";
-    var operates = [[0, 1], [1, -1], [2, 11], [0, 0], [0, 0], [0, 0], [0, 1], [0, 1], [1, -2], [1, -2]];
+    var operates = [[0, 1, 1], [1, -1, 1], [2, 11, 1], [0, 0, 3], [0, 1, 2], [1, -2, 2]];
     operate_test.validate_operatestr(operate_str, operates);
 }
 
