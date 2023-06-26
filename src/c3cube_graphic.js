@@ -276,10 +276,10 @@ C3CubeGraphic.prototype.flatten_c3cube = function(options) {
 
         // draw down 
         if(piece.p[2]==-b) {
-            x = side_len*(1*n + (n-1)/2); y = side_len*(n-1)/2;
+            x = side_len*(1*n + (n-1)/2); y = h - side_len*(n+1)/2;
             const c = this.colormap[c3cube.colormapr[piece.c[2]]];
             const p = this.coord_c3graphic(piece.p);
-            dx = p.x*side_len; dy = p.y*side_len
+            dx = p.y*side_len; dy = p.x*side_len
             ctx.fillStyle = c;
             ctx.strokeRect(x + dx, y - dy, side_len, side_len);
             ctx.fillRect(x + dx, y - dy, side_len, side_len);
@@ -287,10 +287,10 @@ C3CubeGraphic.prototype.flatten_c3cube = function(options) {
 
         // draw up 
         if(piece.p[2]==b) {
-            x = side_len*(1*n + (n-1)/2); y = h - side_len*(n+1)/2;
+            x = side_len*(1*n + (n-1)/2); y = side_len*(n-1)/2; 
             const c = this.colormap[c3cube.colormapr[piece.c[2]]];
             const p = this.coord_c3graphic(piece.p);
-            dx = p.x*side_len; dy = p.y*side_len
+            dx = p.y*side_len; dy = p.x*side_len
             ctx.fillStyle = c;
             ctx.strokeRect(x + dx, y - dy, side_len, side_len);
             ctx.fillRect(x + dx, y - dy, side_len, side_len);
